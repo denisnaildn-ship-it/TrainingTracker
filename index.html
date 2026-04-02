@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Training">
+<title>Training Tracker</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, 'Helvetica Neue', sans-serif; max-width: 500px; margin: 0 auto; padding: 12px 16px 90px; color: #1a1a2e; line-height: 1.5; background: #fff; }
+input, textarea, button { font-family: inherit; }
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; }
+
+.header { text-align: center; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 3px solid #2d6a4f; }
+.header h1 { font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.5px; }
+.header p { font-size: 12px; color: #888; margin-top: 2px; }
+
+.week-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+.week-btn { width: 34px; height: 34px; border-radius: 6px; border: 1px solid #ddd; background: #fff; color: #999; font-size: 13px; font-weight: 500; cursor: pointer; }
+.week-btn.active { font-weight: 800; border-width: 2px; }
+
+.phase-badge { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+
+.targets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+.target-box { padding: 8px 10px; border-radius: 6px; border-left: 3px solid; }
+.target-box .label { font-size: 10px; color: #888; font-weight: 600; }
+.target-box .value { font-size: 12px; font-weight: 700; }
+
+.day-row { display: flex; gap: 4px; margin-bottom: 14px; }
+.day-btn { flex: 1; padding: 7px 4px; border-radius: 6px; border: 1px solid #ddd; background: #fff; color: #999; font-size: 11px; font-weight: 700; cursor: pointer; }
+.day-btn.active { border-width: 2px; }
+
+.section-title { font-size: 12px; font-weight: 800; margin-bottom: 8px; }
+
+.ex-card { border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; border-left: 3px solid #ddd; }
+.ex-card.dynamic { border-left-color: #e76f51; }
+.ex-card.warmup { background: #fde2e4; border-left-color: #c1121f; margin-bottom: 5px; }
+.ex-card.rehab { background: #d8f3dc; border-left-color: #2d6a4f; margin-bottom: 5px; }
+.ex-card.normal { background: #fafafa; }
+
+.ex-header { display: flex; justify-content: space-between; align-items: baseline; }
+.ex-name { font-size: 13px; font-weight: 700; }
+.ex-target { font-size: 12px; font-weight: 600; }
+.ex-note { font-size: 11px; color: #888; margin-top: 1px; }
+
+.sets-row { display: flex; gap: 4px; margin-top: 6px; overflow-x: auto; padding-bottom: 2px; }
+.set-box { min-width: 70px; flex: 0 0 70px; background: rgba(255,255,255,0.7); border-radius: 6px; padding: 6px 6px 4px; text-align: center; }
+.set-label { font-size: 10px; font-weight: 700; color: #999; margin-bottom: 4px; }
+.set-input { width: 100%; padding: 5px 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; text-align: center; background: #fff; outline: none; color: #333; }
+.set-input + .set-input { margin-top: 3px; }
+
+.note-input { width: 100%; padding: 5px 8px; border: 1px solid #eee; border-radius: 6px; font-size: 11px; background: #f5f5f5; outline: none; color: #333; margin-top: 6px; }
+.general-note { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; background: #fff; outline: none; color: #333; resize: vertical; min-height: 40px; margin-top: 8px; }
+
+.submit-btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 12px; color: #fff; }
+
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: #fff; border-top: 1px solid #eee; padding: 8px 0; justify-content: center; gap: 4px; }
+.nav-btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+.feedback-card { border-radius: 10px; padding: 14px; border-left: 3px solid; margin-bottom: 12px; }
+.feedback-title { font-size: 12px; font-weight: 800; margin-bottom: 6px; }
+.feedback-text { font-size: 13px; color: #333; white-space: pre-wrap; line-height: 1.6; }
+
+.history-item { background: #fafafa; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; border-left: 3px solid; cursor: pointer; }
+
+.settings-card { background: #f8f8f8; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+.settings-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.settings-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; background: #fff; outline: none; color: #333; }
+.settings-hint { font-size: 11px; color: #888; margin-top: 6px; }
+.settings-btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+
+.rest-box { text-align: center; padding: 40px 20px; background: #fafafa; border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ==================== DATA ====================
+const PLAN_START = new Date("2026-04-01");
+const WEEK_SCHEDULE = ["bench_high","cardio","rest","rest","bench_low","rest","rest"];
+
+function getPhase(w) {
+  if (w<=5) return {name:"Hypertrophie",color:"#2d6a4f",bg:"#d8f3dc"};
+  if (w===6||w===11) return {name:"Deload",color:"#7b2d8b",bg:"#f0e0f5"};
+  if (w<=10) return {name:"Maximalkraft",color:"#774936",bg:"#f5e6d3"};
+  return {name:"Testing",color:"#c1121f",bg:"#fde2e4"};
+}
+function getBench(w) {
+  return {1:"67kg x8 (4S)",2:"70kg x8 (4S)",3:"72kg x8 (4S)",4:"72kg x8 (4S)",5:"75kg x8 (4S)",6:"45kg x5 (3S)",7:"80kg x4 (5S)",8:"82kg x4 (5S)",9:"85kg x3 (5S)",10:"87kg x3 (5S)",11:"50kg x5 (3S)",12:"1RM TEST"}[w];
+}
+function getPU(w) {
+  return {1:"4x max(6)",2:"4x max(7)",3:"4x max(7)",4:"4x max(7)",5:"4x max(8)",6:"3x4 easy",7:"+5kg x5(4S)",8:"+5kg x5(4S)",9:"+7.5kg x4(4S)",10:"+10kg x4(4S)",11:"3x5 BW",12:"MAX TEST"}[w];
+}
+
+const WARMUP = [
+  {id:"foam",name:"Foam Rolling BWS",target:"2 Min",sets:1},
+  {id:"catcow",name:"Cat-Cow",target:"10 Wdh",sets:1},
+  {id:"hang",name:"Dead Hang",target:"2x 20s",sets:2},
+  {id:"bpa_w",name:"Band Pull-Aparts",target:"2x 15",sets:2},
+  {id:"disc",name:"Band Dislocates",target:"2x 10",sets:2},
+  {id:"scap",name:"Scapular Push-Ups",target:"2x 10",sets:2},
+  {id:"warmbar",name:"Aufwaermsatz: Stange",target:"1x 15",sets:1},
+  {id:"warm40",name:"Aufwaermsatz: 40%",target:"1x 10",sets:1},
+  {id:"warm60",name:"Aufwaermsatz: 60%",target:"1x 5",sets:1},
+];
+const REHAB = [
+  {id:"curlup",name:"McGill Curl-Up",target:"3x 10s Hold",sets:3},
+  {id:"sidep",name:"Side Plank",target:"3x 15s/Seite",sets:3},
+  {id:"bdog",name:"Bird Dog",target:"3x 8/Seite",sets:3},
+  {id:"fp_r",name:"Banded Face Pulls",target:"3x 15",sets:3},
+  {id:"ytw",name:"YTW Raises",target:"2x 8 je Pos.",sets:2},
+];
+
+function parseSets(target, dynamic, week, isPU) {
+  if (dynamic) {
+    var t = isPU ? getPU(week) : getBench(week);
+    var m = t.match(/(\d+)S\)/); if (m) return parseInt(m[1]);
+    var m2 = t.match(/^(\d+)x/); if (m2) return parseInt(m2[1]);
+    return 4;
+  }
+  var m = target.match(/^(\d+)x/); return m ? parseInt(m[1]) : 3;
+}
+
+const WO = {
+  hypertrophy: {
+    bench_high: { title:"Bench Press HIGH", ex:[
+      {id:"bench",name:"Bench Press",dyn:true,note:"Schulterblaetter zusammen, volle ROM bis Brust"},
+      {id:"pullups",name:"Pull-Ups",dyn:true,pu:true,note:"3 Sek negativ, volle ROM"},
+      {id:"incline",name:"Incline DB Press",target:"3x 10",note:"30 Grad Winkel"},
+      {id:"row",name:"Seated Cable Row",target:"3x 12",note:"Squeeze Rhomboide"},
+      {id:"rdl",name:"DB Romanian Deadlift",target:"3x 10",note:"ACHTUNG: Bei LWS-Schmerz weglassen"},
+      {id:"pallof",name:"Pallof Press",target:"3x 10/Seite",note:"Core Anti-Rotation"},
+    ]},
+    bench_low: { title:"Bench Press LOW", ex:[
+      {id:"bp",name:"Bench Pause-Reps",target:"3x 6 @65%",note:"2s Pause auf Brust"},
+      {id:"pu_neg",name:"Pull-Ups negativ",target:"4x 5",note:"3-5s runter"},
+      {id:"land",name:"Landmine Press",target:"3x 10/Arm",note:"Schulterfreundlich"},
+      {id:"csrow",name:"Chest-Supported Row",target:"3x 12",note:"Kein LWS-Risiko"},
+      {id:"goblet",name:"Goblet Squat",target:"3x 12",note:"LWS neutral"},
+      {id:"dbug",name:"Dead Bug",target:"3x 8/Seite",note:"Core"},
+    ]},
+    cardio: { title:"Cardio + Mobility", ex:[
+      {id:"bike",name:"Cardio Bike Zone 2",target:"1x 25 Min",note:"HR 120-140"},
+      {id:"thor",name:"Thorakale Rotation",target:"3x 8/Seite",note:"Buch oeffnen"},
+      {id:"cars",name:"Shoulder CARs",target:"2x 5/Arm",note:"Langsam"},
+      {id:"hip",name:"Hip 90/90 Stretch",target:"2x 30s/Seite",note:"LWS entlasten"},
+      {id:"bfp",name:"Banded Face Pulls",target:"3x 20",note:"Rhomboide"},
+    ]}
+  },
+  maxkraft: {
+    bench_high: { title:"Bench Press HIGH", ex:[
+      {id:"bench",name:"Bench Press",dyn:true,note:"SCHWER - Safety Pins!"},
+      {id:"wpu",name:"Weighted Pull-Ups",dyn:true,pu:true,note:"Gewichtsguertel"},
+      {id:"cgb",name:"Close-Grip Bench",target:"3x 6 @75%",note:"Trizeps > Lockout"},
+      {id:"bbr",name:"Barbell Row",target:"3x 6",note:"ACHTUNG: Ruecken neutral!"},
+      {id:"bss",name:"Bulgarian Split Squat",target:"3x 8/Bein",note:"Unilateral"},
+      {id:"abw",name:"Ab Wheel Knie",target:"3x 8",note:"Stopp bei LWS"},
+    ]},
+    bench_low: { title:"Bench LOW (Speed)", ex:[
+      {id:"bspd",name:"Bench Speed Reps",target:"6x 3 @60%",note:"EXPLOSIV"},
+      {id:"pucl",name:"Pull-Up Cluster",target:"5x (2+2+2)",note:"15s Pause"},
+      {id:"dbb",name:"DB Bench Press",target:"3x 8",note:"Stabilitaet"},
+      {id:"csr2",name:"Chest-Supported Row",target:"3x 8",note:""},
+      {id:"lp",name:"Leg Press",target:"3x 10",note:"Ohne LWS"},
+      {id:"pal2",name:"Pallof Press schwer",target:"3x 8/Seite",note:""},
+    ]},
+    cardio: { title:"Cardio Intervalle", ex:[
+      {id:"intv",name:"Bike Intervalle",target:"1x 25 Min",note:"30s schnell / 90s easy"},
+      {id:"bpa2",name:"Band Pull-Aparts",target:"4x 20",note:"Rhomboide"},
+      {id:"exr",name:"External Rotation",target:"3x 15/Seite",note:"Rotatorenmanschette"},
+      {id:"bwsm",name:"BWS Mobilisation",target:"1x 10 Min",note:"Cat-Cow, Rotation"},
+    ]}
+  },
+  deload: {
+    bench_high: { title:"Leichtes Training", ex:[
+      {id:"bd",name:"Bench Press",dyn:true,note:"Nur Technik"},
+      {id:"pud",name:"Pull-Ups",target:"3x 4 easy",note:"Locker"},
+      {id:"drd",name:"DB Row",target:"2x 10",note:"Leicht"},
+      {id:"gsd",name:"Goblet Squat",target:"2x 10",note:""},
+    ]},
+    bench_low: { title:"Leichtes Training", ex:[
+      {id:"bd2",name:"Bench Press",target:"3x 5 @50%",note:"Technik"},
+      {id:"pud2",name:"Pull-Ups",target:"3x 4",note:""},
+      {id:"fpd",name:"Face Pulls",target:"3x 15",note:""},
+      {id:"dbd",name:"Dead Bug",target:"3x 8/Seite",note:""},
+    ]},
+    cardio: { title:"Mobility & Recovery", ex:[
+      {id:"bkd",name:"Leichtes Radfahren",target:"1x 20 Min",note:"Zone 1"},
+      {id:"mobd",name:"Mobility-Routine",target:"1x 20 Min",note:"BWS, Schulter, Huefte"},
+      {id:"frd",name:"Foam Rolling",target:"1x 10 Min",note:"Ganzer Koerper"},
+    ]}
+  },
+  testing: {
+    bench_high: { title:"TESTING DAY", ex:[
+      {id:"t1rm",name:"Bench Press 1RM",target:"8x 1",note:"Stange bis 100kg, 3-5min Pause, Spotter!"},
+      {id:"tpu",name:"Pull-Up Max",target:"1x max",note:"Ziel: 10. Kein Kipping."},
+    ]},
+    bench_low: { title:"Retest / Leicht", ex:[
+      {id:"rt",name:"Optional Retest",target:"1x 1",note:""},
+      {id:"ac",name:"Leichtes Accessory",target:"3x 10",note:"nach Gefuehl"},
+    ]},
+    cardio: { title:"Restday", ex:[] }
+  }
+};
+
+function phaseKey(w) { if(w<=5)return"hypertrophy";if(w===6||w===11)return"deload";if(w<=10)return"maxkraft";return"testing"; }
+function getToday() {
+  var d = Math.floor((new Date()-PLAN_START)/86400000);
+  var w = Math.min(12,Math.max(1,Math.floor(d/7)+1));
+  return {week:w, type:WEEK_SCHEDULE[((d%7)+7)%7]};
+}
+
+// ==================== STATE ====================
+var state = {
+  screen: "train", week: 1, type: "bench_high",
+  logs: {}, warmLogs: {}, rehabLogs: {}, note: "",
+  feedback: "", loading: false, history: [],
+  apiKey: "", showSettings: false, expandedHist: null
+};
+
+function init() {
+  var t = getToday(); state.week = t.week; state.type = t.type;
+  try { state.apiKey = localStorage.getItem("tk_apikey") || ""; } catch(e){}
+  try { var h = localStorage.getItem("tk_history_v2"); if(h) state.history = JSON.parse(h); } catch(e){}
+  render();
+}
+
+// ==================== RENDER ====================
+function render() {
+  var phase = getPhase(state.week);
+  var pk = phaseKey(state.week);
+  var wo = WO[pk]?.[state.type];
+  var isRest = state.type==="rest" || !wo || !wo.ex?.length;
+  var isStr = state.type==="bench_high" || state.type==="bench_low";
+  var html = "";
+
+  // Header
+  html += '<div class="header" style="border-bottom-color:'+phase.color+'">';
+  html += '<h1>Training Tracker</h1><p>Ziel: 100kg Bench / 10 Pull-Ups</p>';
+  html += '<div style="margin-top:8px"><button onclick="toggleSettings()" style="background:none;border:1px solid #ddd;border-radius:6px;padding:4px 12px;font-size:11px;color:#888;cursor:pointer">'+(state.apiKey ? 'API Key gesetzt' : 'API Key eingeben')+'</button></div>';
+  html += '</div>';
+
+  // Settings
+  if (state.showSettings) {
+    html += '<div class="settings-card">';
+    html += '<div class="settings-title">Anthropic API Key</div>';
+    html += '<input class="settings-input" type="password" placeholder="sk-ant-..." value="'+esc(state.apiKey)+'" oninput="updateKey(this.value)">';
+    html += '<div class="settings-hint">Dein Key wird nur lokal auf deinem Geraet gespeichert. Hol dir einen Key auf console.anthropic.com</div>';
+    html += '<button class="settings-btn" style="background:#2d6a4f;color:#fff" onclick="saveKey()">Speichern</button>';
+    html += ' <button class="settings-btn" style="background:#eee;color:#333" onclick="toggleSettings()">Schliessen</button>';
+    html += '</div>';
+  }
+
+  if (state.screen === "train") {
+    // Weeks
+    html += '<div class="week-row">';
+    for (var w=1;w<=12;w++) {
+      var p=getPhase(w);
+      var act=state.week===w;
+      html += '<button class="week-btn'+(act?' active':'')+'" style="'+(act?'border-color:'+p.color+';background:'+p.bg+';color:'+p.color:'')+'" onclick="setWeek('+w+')">'+w+'</button>';
+    }
+    html += '</div>';
+
+    // Phase badge
+    html += '<div class="phase-badge" style="background:'+phase.bg+';color:'+phase.color+'">Woche '+state.week+' - '+phase.name+'</div>';
+
+    // Targets
+    html += '<div class="targets">';
+    html += '<div class="target-box" style="background:#f0f7f4;border-left-color:#2d6a4f"><div class="label">BENCH</div><div class="value" style="color:#2d6a4f">'+getBench(state.week)+'</div></div>';
+    html += '<div class="target-box" style="background:#f0f4f7;border-left-color:#1d3557"><div class="label">PULL-UPS</div><div class="value" style="color:#1d3557">'+getPU(state.week)+'</div></div>';
+    html += '</div>';
+
+    // Day buttons
+    html += '<div class="day-row">';
+    [["bench_high","Bench HIGH"],["cardio","Cardio"],["bench_low","Bench LOW"]].forEach(function(d) {
+      var act=state.type===d[0];
+      html += '<button class="day-btn'+(act?' active':'')+'" style="'+(act?'border-color:'+phase.color+';background:'+phase.bg+';color:'+phase.color:'')+'" onclick="setDay(\''+d[0]+'\')">'+d[1]+'</button>';
+    });
+    html += '</div>';
+
+    if (isRest) {
+      html += '<div class="rest-box"><div style="font-size:24px;margin-bottom:8px">Rest Day</div><div style="font-size:16px;font-weight:700">Ruhetag</div><div style="font-size:12px;color:#888;margin-top:4px">Erholung ist Training. 50-100 Band Pull-Aparts!</div></div>';
+    } else {
+      // Warmup
+      if (isStr) {
+        html += '<div class="section-title" style="color:#c1121f">WARM-UP (PFLICHT)</div>';
+        WARMUP.forEach(function(w) { html += renderExCard(w, "warmup", w.sets, "warmLogs"); });
+        html += '<div style="height:12px"></div>';
+      }
+
+      // Training
+      html += '<div class="section-title" style="color:'+phase.color+'">TRAINING - '+wo.title+'</div>';
+      wo.ex.forEach(function(ex) {
+        var n = parseSets(ex.target, ex.dyn, state.week, ex.pu);
+        var target = ex.dyn ? (ex.pu ? getPU(state.week) : getBench(state.week)) : ex.target;
+        html += renderExCard({id:ex.id,name:ex.name,target:target,note:ex.note,sets:n}, ex.dyn?"dynamic":"normal", n, "logs");
+      });
+
+      // Rehab
+      if (isStr) {
+        html += '<div style="height:12px"></div>';
+        html += '<div class="section-title" style="color:#2d6a4f">REHAB BLOCK</div>';
+        REHAB.forEach(function(r) { html += renderExCard(r, "rehab", r.sets, "rehabLogs"); });
+      }
+
+      // General note
+      html += '<textarea class="general-note" placeholder="Allgemeine Notizen..." onchange="state.note=this.value">'+esc(state.note)+'</textarea>';
+
+      // Submit
+      html += '<button class="submit-btn" style="background:'+phase.color+'" onclick="submitTraining()">Training speichern + Feedback holen</button>';
+    }
+
+  } else if (state.screen === "feedback") {
+    if (state.loading) {
+      html += '<div style="text-align:center;padding:60px 0"><div style="font-size:18px;margin-bottom:10px">Analysiere...</div><div style="color:#888;font-size:14px">Coaching-Feedback wird geladen</div></div>';
+    } else {
+      html += '<div class="feedback-card" style="background:'+phase.bg+';border-left-color:'+phase.color+'">';
+      html += '<div class="feedback-title" style="color:'+phase.color+'">COACHING FEEDBACK</div>';
+      html += '<div class="feedback-text">'+esc(state.feedback)+'</div></div>';
+      html += '<details style="margin-bottom:12px"><summary style="font-size:12px;color:#888;cursor:pointer;font-weight:600">Dein Log anzeigen</summary><div style="font-size:11px;color:#666;white-space:pre-wrap;padding:8px 0">'+esc(buildSummary())+'</div></details>';
+      html += '<button style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#333" onclick="go(\'train\')">Zurueck zum Training</button>';
+    }
+
+  } else if (state.screen === "history") {
+    html += '<div style="font-size:16px;font-weight:700;margin-bottom:12px">Trainings-History</div>';
+    if (!state.history.length) html += '<div style="color:#888;font-size:13px">Noch keine Eintraege.</div>';
+    var rev = state.history.slice().reverse();
+    rev.forEach(function(h,i) {
+      var p = getPhase(h.week);
+      var open = state.expandedHist === i;
+      html += '<div class="history-item" style="border-left-color:'+p.color+'" onclick="toggleHist('+i+')">';
+      html += '<div style="display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:700">W'+h.week+' / '+h.type+'</span><span style="font-size:11px;color:#888">'+new Date(h.date).toLocaleDateString("de-DE")+'</span></div>';
+      if (open) {
+        html += '<div style="font-size:11px;color:#666;white-space:pre-wrap;margin-top:8px;padding-top:8px;border-top:1px solid #eee">'+esc(h.summary)+'</div>';
+        if (h.feedback) html += '<div style="font-size:11px;color:'+p.color+';margin-top:8px;white-space:pre-wrap;padding-top:8px;border-top:1px solid #eee">'+esc(h.feedback)+'</div>';
+      }
+      html += '</div>';
+    });
+  }
+
+  // Nav
+  html += '<div class="bottom-nav">';
+  ["train","feedback","history"].forEach(function(s) {
+    var labels = {train:"Training",feedback:"Feedback",history:"History"};
+    var act = state.screen===s;
+    html += '<button class="nav-btn" style="background:'+(act?phase.color:'#f5f5f5')+';color:'+(act?'#fff':'#888')+'" onclick="go(\''+s+'\')">'+labels[s]+'</button>';
+  });
+  html += '</div>';
+
+  document.getElementById("app").innerHTML = html;
+}
+
+function renderExCard(item, type, numSets, logKey) {
+  var cls = "ex-card " + (type==="warmup"?"warmup":type==="rehab"?"rehab":type==="dynamic"?"normal dynamic":"normal");
+  var targetColor = type==="warmup"?"#c1121f":type==="rehab"?"#2d6a4f":getPhase(state.week).color;
+  var h = '<div class="'+cls+'">';
+  h += '<div class="ex-header"><span class="ex-name">'+esc(item.name)+'</span><span class="ex-target" style="color:'+targetColor+'">'+esc(item.target)+'</span></div>';
+  if (item.note) h += '<div class="ex-note">'+esc(item.note)+'</div>';
+  h += '<div class="sets-row">';
+  for (var i=0;i<numSets;i++) {
+    var val = state[logKey]?.[item.id]?.[i] || {};
+    h += '<div class="set-box"><div class="set-label">Set '+(i+1)+'</div>';
+    h += '<input class="set-input" type="number" placeholder="kg" value="'+(val.weight||"")+'" onchange="setLog(\''+logKey+'\',\''+item.id+'\','+i+',\'weight\',this.value)">';
+    h += '<input class="set-input" type="number" placeholder="reps" value="'+(val.reps||"")+'" onchange="setLog(\''+logKey+'\',\''+item.id+'\','+i+',\'reps\',this.value)">';
+    h += '</div>';
+  }
+  h += '</div>';
+  if (logKey==="logs") {
+    var noteVal = state.logs?.[item.id]?.note || "";
+    h += '<input class="note-input" placeholder="Notizen zur Uebung..." value="'+esc(noteVal)+'" onchange="setLog(\'logs\',\''+item.id+'\',\'note\',\'note\',this.value)">';
+  }
+  h += '</div>';
+  return h;
+}
+
+// ==================== ACTIONS ====================
+function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function go(s) { state.screen=s; render(); }
+function setWeek(w) { state.week=w; state.logs={}; state.warmLogs={}; state.rehabLogs={}; state.note=""; render(); }
+function setDay(d) { state.type=d; state.logs={}; render(); }
+function toggleSettings() { state.showSettings=!state.showSettings; render(); }
+function updateKey(v) { state.apiKey=v; }
+function saveKey() { try{localStorage.setItem("tk_apikey",state.apiKey);}catch(e){} state.showSettings=false; render(); }
+function toggleHist(i) { state.expandedHist = state.expandedHist===i ? null : i; render(); }
+
+function setLog(logKey, exId, setIdx, field, val) {
+  if (!state[logKey]) state[logKey] = {};
+  if (!state[logKey][exId]) state[logKey][exId] = {};
+  if (field==="note") { state[logKey][exId].note = val; }
+  else {
+    if (!state[logKey][exId][setIdx]) state[logKey][exId][setIdx] = {};
+    state[logKey][exId][setIdx][field] = val;
+  }
+}
+
+function buildSummary() {
+  var phase = getPhase(state.week);
+  var pk = phaseKey(state.week);
+  var wo = WO[pk]?.[state.type];
+  var lines = ["Woche "+state.week+" ("+phase.name+") - "+(wo?.title||state.type)];
+  lines.push("\n--- WARM-UP ---");
+  WARMUP.forEach(function(w){
+    var s=state.warmLogs[w.id]; if(!s){lines.push(w.name+": nicht gemacht");return;}
+    var parts=[];for(var i=0;i<w.sets;i++){if(s[i]?.reps)parts.push("Set"+(i+1)+": "+(s[i].weight?s[i].weight+"kg ":"")+s[i].reps+" reps");}
+    lines.push(w.name+": "+(parts.length?parts.join(", "):"nicht eingetragen"));
+  });
+  lines.push("\n--- TRAINING ---");
+  if(wo?.ex) wo.ex.forEach(function(ex){
+    var s=state.logs[ex.id];var n=parseSets(ex.target,ex.dyn,state.week,ex.pu);var parts=[];
+    if(s){for(var i=0;i<n;i++){if(s[i]?.reps)parts.push("Set"+(i+1)+": "+(s[i].weight?s[i].weight+"kg x":"")+s[i].reps);}}
+    if(s?.note)parts.push("("+s.note+")");
+    lines.push(ex.name+": "+(parts.length?parts.join(", "):"nicht gemacht"));
+  });
+  lines.push("\n--- REHAB ---");
+  REHAB.forEach(function(r){
+    var s=state.rehabLogs[r.id];if(!s){lines.push(r.name+": nicht gemacht");return;}
+    var parts=[];for(var i=0;i<r.sets;i++){if(s[i]?.reps)parts.push("Set"+(i+1)+": "+s[i].reps);}
+    lines.push(r.name+": "+(parts.length?parts.join(", "):"nicht eingetragen"));
+  });
+  if(state.note) lines.push("\nNotizen: "+state.note);
+  return lines.join("\n");
+}
+
+async function submitTraining() {
+  if (!state.apiKey) { alert("Bitte zuerst API Key eingeben (oben im Header)"); return; }
+  state.loading = true; state.screen = "feedback"; render();
+
+  var summary = buildSummary();
+  var phase = getPhase(state.week);
+  var ctx = "Du bist Denis' Kraft-Coach. Probleme: Bandscheibenvorfall (2J), Rhomboide-Schmerzen, Schulterschmerzen. Ziele: 100kg Bench (aktuell ca. 75kg x6), 10 Pull-Ups (aktuell 6). Woche "+state.week+"/"+phase.name+".\nVorheriges Training W1T1: Bench 4x8@68kg (stoppt 3cm ueber Brust), Pull-Ups 6/5/3/3, Warm-Up+Rehab uebersprungen.\n\nHeutiges Training:\n"+summary+"\n\nGib 4-5 Punkte Coaching-Feedback auf Deutsch. Was war gut, was muss besser, konkrete Anpassungen fuers naechste Training. Ehrlich, direkt, motivierend.";
+
+  try {
+    var res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": state.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, messages:[{role:"user",content:ctx}] })
+    });
+    var data = await res.json();
+    if (data.error) { state.feedback = "API Fehler: " + (data.error.message||JSON.stringify(data.error)); }
+    else { state.feedback = data.content?.map(function(b){return b.text||""}).join("\n") || "Kein Feedback erhalten."; }
+  } catch(e) { state.feedback = "Verbindungsfehler: " + e.message; }
+
+  // Save to history
+  var entry = { date:new Date().toISOString(), week:state.week, type:state.type, summary:summary, feedback:state.feedback };
+  state.history.push(entry);
+  try { localStorage.setItem("tk_history_v2", JSON.stringify(state.history)); } catch(e){}
+
+  state.loading = false; render();
+}
+
+init();
+</script>
+</body>
+</html>
