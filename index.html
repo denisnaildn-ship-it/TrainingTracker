@@ -70,14 +70,14 @@ var DN=["Mo","Di","Mi","Do","Fr","Sa","So"];
 var FULL_DN=["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 var TC={bench_high:"#e76f51",cardio:"#2d6a4f",bench_low:"#1d3557"};
 var TL={bench_high:"Bench HIGH",cardio:"Cardio",bench_low:"Bench LOW"};
- 
+
 function getPhase(w){if(w<=5)return{name:"Hypertrophie",color:"#2d6a4f",bg:"#d8f3dc"};if(w===6||w===11)return{name:"Deload",color:"#7b2d8b",bg:"#f0e0f5"};if(w<=10)return{name:"Maximalkraft",color:"#774936",bg:"#f5e6d3"};return{name:"Testing",color:"#c1121f",bg:"#fde2e4"};}
 function phaseKey(w){if(w<=5)return"hypertrophy";if(w===6||w===11)return"deload";if(w<=10)return"maxkraft";return"testing";}
 function getKW(w){return w+13;}
- 
+
 var BENCH_INC={1:0,2:3,3:2,4:0,5:3,6:0,7:0,8:2,9:3,10:2,11:0,12:0};
 var BENCH_BASE={1:67,2:70,3:72,4:72,5:75,6:45,7:80,8:82,9:85,10:87,11:50,12:100};
- 
+
 function getActualBench(week){
   for(var d=0;d<7;d++){
     ["bench_high","bench_low"].forEach(function(t){
@@ -90,7 +90,7 @@ function getActualBench(week){
   }
   var r=getActualBench._r;getActualBench._r=null;return r;
 }
- 
+
 function adaptBench(week){
   if(week===6)return"45kg x5 (3S)";if(week===11)return"50kg x5 (3S)";if(week===12)return"1RM TEST";
   if(week===1)return BENCH_BASE[1]+"kg x8 (4S)";
@@ -101,7 +101,7 @@ function adaptBench(week){
   var b=BENCH_BASE[week];if(week<=5)return b+"kg x8 (4S)";if(week<=10)return b+"kg x"+(week<=8?"4":"3")+" (5S)";return b+"kg";
 }
 function getPU(w){return{1:"4x max(6)",2:"4x max(7)",3:"4x max(7)",4:"4x max(7)",5:"4x max(8)",6:"3x4 easy",7:"+5kg x5(4S)",8:"+5kg x5(4S)",9:"+7.5kg x4(4S)",10:"+10kg x4(4S)",11:"3x5 BW",12:"MAX TEST"}[w];}
- 
+
 var WARMUP=[
   {id:"foam",name:"Foam Rolling BWS",target:"2 Min",sets:1,noKg:1},
   {id:"catcow",name:"Cat-Cow",target:"10 Wdh",sets:1,noKg:1},
@@ -120,9 +120,9 @@ var REHAB=[
   {id:"fp_r",name:"Banded Face Pulls",target:"3x 15",sets:3,noKg:1},
   {id:"ytw",name:"YTW Raises",target:"2x 8 je Pos.",sets:2,noKg:1},
 ];
- 
+
 function parseSets(target,dyn,week,pu){if(dyn){var t=pu?getPU(week):adaptBench(week);var m=t.match(/(\d+)S\)/);if(m)return parseInt(m[1]);var m2=t.match(/^(\d+)x/);if(m2)return parseInt(m2[1]);return 4;}var m=target.match(/^(\d+)x/);return m?parseInt(m[1]):3;}
- 
+
 var WO={
   hypertrophy:{
     bench_high:{title:"Bench Press HIGH",ex:[
@@ -204,11 +204,11 @@ var WO={
     cardio:{title:"Restday",ex:[]}
   }
 };
- 
+
 // Storage
 function sv(k,v){try{localStorage.setItem("tt5_"+k,JSON.stringify(v));}catch(e){}}
 function ld(k,d){try{var v=localStorage.getItem("tt5_"+k);return v?JSON.parse(v):d;}catch(e){return d;}}
- 
+
 // State
 var S={
   screen:"train",week:1,dayIdx:0,selType:null, // selected workout type for current day
@@ -217,10 +217,10 @@ var S={
   allData:ld("data",{}), // key: "w{week}_{dayIdx}_{type}"
   dayTypes:ld("dtypes",{}) // key: "w{week}_{dayIdx}" -> chosen type
 };
- 
+
 function sKey(){return"w"+S.week+"_"+S.dayIdx+"_"+S.selType;}
 function dtKey(){return"w"+S.week+"_"+S.dayIdx;}
- 
+
 function saveDayData(){
   if(!S.selType)return;
   S.allData[sKey()]={logs:S.logs,warmLogs:S.warmLogs,rehabLogs:S.rehabLogs,note:S.note,feedback:S.feedback};
@@ -232,7 +232,7 @@ function loadDayData(){
   if(S.selType){var d=S.allData[sKey()];if(d){S.logs=d.logs||{};S.warmLogs=d.warmLogs||{};S.rehabLogs=d.rehabLogs||{};S.note=d.note||"";S.feedback=d.feedback||"";return;}}
   S.logs={};S.warmLogs={};S.rehabLogs={};S.note="";S.feedback="";
 }
- 
+
 function getLastWeight(exId){
   for(var w=S.week;w>=1;w--){for(var d=6;d>=0;d--){
     if(w===S.week&&d>=S.dayIdx)continue;
@@ -243,31 +243,31 @@ function getLastWeight(exId){
   }}
   var r=getLastWeight._r;getLastWeight._r=null;return r;
 }
- 
+
 function countFB(w){var c=0;for(var d=0;d<7;d++){var t=S.dayTypes["w"+w+"_"+d];if(t){var dd=S.allData["w"+w+"_"+d+"_"+t];if(dd&&dd.feedback)c++;}}return c;}
- 
+
 function init(){
   var diff=Math.floor((new Date()-PLAN_START)/86400000);
   S.week=Math.min(12,Math.max(1,Math.floor(diff/7)+1));
   var jd=new Date().getDay();S.dayIdx=jd===0?6:jd-1;
   loadDayData();render();
 }
- 
+
 function render(){
   var phase=getPhase(S.week);var pk=phaseKey(S.week);
   var h="";
- 
+
   // Header
   h+='<div class="header" style="border-bottom-color:'+phase.color+'"><h1>Training Tracker</h1><p>Ziel: 100kg Bench / 10 Pull-Ups</p>';
   h+='<div style="margin-top:8px"><button onclick="toggleSettings()" style="background:none;border:1px solid #ddd;border-radius:6px;padding:4px 12px;font-size:11px;color:#888;cursor:pointer">'+(S.apiKey?'API Key gesetzt':'API Key eingeben')+'</button></div></div>';
- 
+
   if(S.showSettings){
     h+='<div class="settings-card"><div style="font-size:14px;font-weight:700;margin-bottom:8px">Anthropic API Key</div>';
     h+='<input style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:13px;outline:none;color:#333" type="password" placeholder="sk-ant-..." value="'+esc(S.apiKey)+'" oninput="S.apiKey=this.value">';
     h+='<div style="margin-top:8px"><button onclick="saveKey()" style="padding:10px 20px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#2d6a4f;color:#fff">Speichern</button>';
     h+=' <button onclick="toggleSettings()" style="padding:10px 20px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#eee;color:#333">Schliessen</button></div></div>';
   }
- 
+
   if(S.screen==="train"){
     // Weeks
     h+='<div class="week-row">';
@@ -275,11 +275,11 @@ function render(){
       h+='<button class="wk-btn" style="border:'+(act?'2px solid '+p.color:'1px solid #ddd')+';background:'+(done?p.color:(act?p.bg:'#fff'))+';color:'+(done?'#fff':(act?p.color:'#999'))+'" onclick="setWeek('+w+')"><span class="wnum">'+w+'</span><span>KW'+getKW(w)+'</span>'+(fb>0&&!done?'<span style="font-size:8px">'+fb+'/3</span>':'')+(done?'<span style="font-size:9px">OK</span>':'')+'</button>';
     }
     h+='</div>';
- 
+
     h+='<div class="phase-badge" style="background:'+phase.bg+';color:'+phase.color+'">KW'+getKW(S.week)+' - '+phase.name+'</div>';
     h+='<div class="targets"><div class="target-box" style="background:#f0f7f4;border-left-color:#2d6a4f"><div class="label">BENCH</div><div class="value" style="color:#2d6a4f">'+adaptBench(S.week)+'</div></div>';
     h+='<div class="target-box" style="background:#f0f4f7;border-left-color:#1d3557"><div class="label">PULL-UPS</div><div class="value" style="color:#1d3557">'+getPU(S.week)+'</div></div></div>';
- 
+
     // Day slots Mo-So
     h+='<div class="day-row">';
     for(var d=0;d<7;d++){
@@ -293,7 +293,7 @@ function render(){
       h+='</div>';
     }
     h+='</div>';
- 
+
     // Type selector for selected day
     h+='<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:#555">'+FULL_DN[S.dayIdx]+' - Was hast du trainiert?</div>';
     h+='<div class="type-row">';
@@ -302,7 +302,7 @@ function render(){
       h+='<button class="type-btn'+(act3?' active':'')+'" style="'+(act3?'border-color:'+TC[t]+';background:'+TC[t]+';color:#fff':'border-color:#ddd')+'" onclick="pickType(\''+t+'\')">'+TL[t]+'</button>';
     });
     h+='</div>';
- 
+
     // Training content
     if(!S.selType){
       h+='<div class="empty-day"><div style="font-size:14px;font-weight:600;color:#888">Waehle oben dein Training aus</div><div style="font-size:12px;color:#aaa;margin-top:4px">oder lass den Tag frei als Ruhetag</div></div>';
@@ -312,37 +312,37 @@ function render(){
         h+='<div class="empty-day"><div style="font-size:14px;color:#888">Ruhetag</div></div>';
       } else {
         var isStr=S.selType==="bench_high"||S.selType==="bench_low";
- 
+
         if(isStr){
           h+='<div class="section-title" style="color:#c1121f">WARM-UP (PFLICHT)</div>';
           WARMUP.forEach(function(w){h+=renderCard(w,"warmup",w.sets,"warmLogs",w.noKg);});
           h+='<div style="height:12px"></div>';
         }
- 
+
         h+='<div class="section-title" style="color:'+phase.color+'">TRAINING - '+wo.title+'</div>';
         wo.ex.forEach(function(ex){
           var n=parseSets(ex.target,ex.dyn,S.week,ex.pu);
           var target=ex.dyn?(ex.pu?getPU(S.week):adaptBench(S.week)):ex.target;
           h+=renderCard({id:ex.id,name:ex.name,target:target,note:ex.note,sets:n,noKg:ex.noKg},ex.dyn?"dynamic":"normal",n,"logs",ex.noKg);
         });
- 
+
         if(isStr){
           h+='<div style="height:12px"></div><div class="section-title" style="color:#2d6a4f">REHAB BLOCK</div>';
           REHAB.forEach(function(r){h+=renderCard(r,"rehab",r.sets,"rehabLogs",r.noKg);});
         }
- 
+
         h+='<textarea class="general-note" placeholder="Allgemeine Notizen..." oninput="S.note=this.value;saveDayData()">'+esc(S.note)+'</textarea>';
- 
+
         if(S.feedback){
           h+='<div class="feedback-card" style="background:'+phase.bg+';border-left-color:'+phase.color+';margin-top:12px">';
           h+='<div style="font-size:12px;font-weight:800;color:'+phase.color+';margin-bottom:6px">COACHING FEEDBACK</div>';
           h+='<div style="font-size:13px;color:#333;white-space:pre-wrap;line-height:1.6">'+esc(S.feedback)+'</div></div>';
         }
- 
+
         h+='<button class="submit-btn" style="background:'+phase.color+'" onclick="submitTraining()">'+(S.loading?'Laden...':'Training speichern + Feedback holen')+'</button>';
       }
     }
- 
+
   } else if(S.screen==="feedback"){
     if(S.feedback){
       h+='<div class="feedback-card" style="background:'+phase.bg+';border-left-color:'+phase.color+'">';
@@ -350,7 +350,7 @@ function render(){
       h+='<div style="font-size:13px;color:#333;white-space:pre-wrap;line-height:1.6">'+esc(S.feedback)+'</div></div>';
     } else {h+='<div style="text-align:center;padding:40px;color:#888">Noch kein Feedback.</div>';}
     h+='<button style="width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#333" onclick="go(\'train\')">Zurueck</button>';
- 
+
   } else if(S.screen==="history"){
     h+='<div style="font-size:16px;font-weight:700;margin-bottom:12px">Trainings-History</div>';
     if(!S.history.length)h+='<div style="color:#888;font-size:13px">Noch keine Eintraege.</div>';
@@ -363,16 +363,16 @@ function render(){
       h+='</div>';
     });
   }
- 
+
   // Nav
   h+='<div class="bottom-nav">';
   ["train","feedback","history"].forEach(function(s){var lb={train:"Training",feedback:"Feedback",history:"History"};var a=S.screen===s;
     h+='<button class="nav-btn" style="background:'+(a?phase.color:'#f5f5f5')+';color:'+(a?'#fff':'#888')+'" onclick="go(\''+s+'\')">'+lb[s]+'</button>';
   });h+='</div>';
- 
+
   document.getElementById("app").innerHTML=h;
 }
- 
+
 function renderCard(item,type,numSets,logKey,noKg){
   var cls="ex-card "+(type==="warmup"?"warmup":type==="rehab"?"rehab":type==="dynamic"?"normal dynamic":"normal");
   var tc=type==="warmup"?"#c1121f":type==="rehab"?"#2d6a4f":getPhase(S.week).color;
@@ -389,7 +389,7 @@ function renderCard(item,type,numSets,logKey,noKg){
   if(logKey==="logs"){var nv=S.logs?.[item.id]?.note||"";h+='<input class="note-input" placeholder="Notizen zur Uebung..." value="'+esc(nv)+'" oninput="setLog(\'logs\',\''+item.id+'\',\'note\',\'note\',this.value)">';}
   h+='</div>';return h;
 }
- 
+
 function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function go(s){S.screen=s;render();}
 function setWeek(w){S.week=w;loadDayData();render();}
@@ -403,14 +403,14 @@ function toggleSettings(){S.showSettings=!S.showSettings;render();}
 function saveKey(){sv("key",S.apiKey);S.showSettings=false;showToast("API Key gespeichert!");render();}
 function toggleHist(i){S.expandedHist=S.expandedHist===i?null:i;render();}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.style.display="block";setTimeout(function(){t.style.display="none";},2500);}
- 
+
 function setLog(logKey,exId,setIdx,field,val){
   if(!S[logKey])S[logKey]={};if(!S[logKey][exId])S[logKey][exId]={};
   if(field==="note")S[logKey][exId].note=val;
   else{if(!S[logKey][exId][setIdx])S[logKey][exId][setIdx]={};S[logKey][exId][setIdx][field]=val;}
   saveDayData();
 }
- 
+
 function buildSummary(){
   var phase=getPhase(S.week);var wo=WO[phaseKey(S.week)]?.[S.selType];
   var isStr=S.selType==="bench_high"||S.selType==="bench_low";
@@ -421,7 +421,7 @@ function buildSummary(){
   if(isStr){lines.push("\n--- REHAB ---");REHAB.forEach(function(r){var s=S.rehabLogs[r.id];if(!s){lines.push(r.name+": nicht gemacht");return;}var p=[];for(var i=0;i<r.sets;i++){if(s[i]?.reps)p.push("Set"+(i+1)+": "+s[i].reps);}lines.push(r.name+": "+(p.length?p.join(", "):"nicht eingetragen"));});}
   if(S.note)lines.push("\nNotizen: "+S.note);return lines.join("\n");
 }
- 
+
 async function submitTraining(){
   if(!S.apiKey){alert("Bitte API Key eingeben");return;}
   S.loading=true;render();var summary=buildSummary();var phase=getPhase(S.week);
@@ -432,7 +432,7 @@ async function submitTraining(){
   saveDayData();S.history.push({date:new Date().toISOString(),week:S.week,day:FULL_DN[S.dayIdx],summary:summary,feedback:S.feedback});sv("hist",S.history);
   S.loading=false;showToast("Feedback erhalten!");render();
 }
- 
+
 init();
 </script>
 </body>
