@@ -139,6 +139,11 @@ main{max-width:640px;margin:0 auto;padding:14px 14px 30px}
 .frow input:focus,.frow select:focus{outline:none;border-color:var(--red)}
 .frow .u{font-size:11px;color:var(--muted);width:36px;text-transform:uppercase;font-family:'Oswald'}
 .caltotal{display:flex;justify-content:space-between;align-items:center;border-top:2px solid var(--ink);padding-top:10px;margin-top:4px}
+.mealrow{display:flex;align-items:center;gap:5px;margin-bottom:8px}
+.mealrow label{flex:0 0 74px;font-size:12px;font-family:'Oswald';text-transform:uppercase;font-weight:600;color:var(--ink2)}
+.mealrow input{flex:1;min-width:0;border:1px solid var(--line);background:#fbfaf8;padding:9px 4px;font-size:16px;text-align:center;font-family:'Barlow Condensed';font-weight:600;border-radius:0}
+.mealrow input:focus{outline:none;border-color:var(--red);background:#fff}
+.mealrow .u{font-size:10px;color:var(--muted);font-family:'Oswald';text-transform:uppercase;flex:0 0 auto}
 .caltotal .l{font-family:'Oswald';text-transform:uppercase;font-weight:700;font-size:15px}
 .caltotal .v{font-family:'Oswald';font-weight:700;font-size:24px}
 .caltotal .v.over{color:var(--red)}
@@ -274,6 +279,7 @@ nav button .ic{display:block;font-size:18px;margin-bottom:2px;color:#8f8a81}
           <span><i style="background:var(--ink)"></i>Bauch</span>
           <span><i style="background:#1b7a3d"></i>Bizeps</span>
           <span><i style="background:#b8860b"></i>Quad</span>
+          <span><i style="background:#6b4fbb"></i>Gewicht (kg)</span>
         </div>
       </div>
     </div>
@@ -358,7 +364,7 @@ const TRAININGS={
     {id:"idb",n:"Incline DB Press",    s:"3x8-10",sets:3, lo:8, hi:10,inc:2},
     {id:"csr",n:"Chest-Supported Row", s:"3x10",  sets:3, lo:10,hi:10,inc:2.5},
     {id:"fp", n:"Face Pulls Kabel",    s:"3x15",  sets:3, lo:15,hi:15,inc:1},
-    {id:"hc", n:"Hammer Curls",        s:"3x10",  sets:3, lo:10,hi:10,inc:2},
+    {id:"gs", n:"Goblet Squat",        s:"3x12",  sets:3, lo:12,hi:12,inc:2.5},
   ]},
   brustB:{tag:"BRUST B", name:"Brust Volumen", kind:"strength", bench:true, progType:"volume", ex:[
     {id:"bp", n:"Bench Press",         s:"4x8",   sets:4, lo:8, hi:8, inc:2.5, main:true, track:"bench"},
@@ -513,7 +519,7 @@ function ensureDay(w,d){ const k=sKey(w,d); if(!DB.sessions[k]) DB.sessions[k]={
 function anyTrue(o){ if(!o)return false; return Object.keys(o).some(k=>o[k]); }
 function anyVal(o){ if(!o)return false; return Object.keys(o).some(k=>o[k]!==""&&o[k]!=null&&o[k]!==false); }
 function exHasData(o){ if(!o||!o.ex)return false; return Object.keys(o.ex).some(id=>o.ex[id].sets.some(s=>s.kg!==""||s.reps!=="")); }
-function hasDayData(o){ return !!(o&&(o.trainingId||anyTrue(o.morning)||anyVal(o.cals)||exHasData(o)||anyVal(o.cardio)||num(o.steps)>0||o.krea||o.shake||num(o.shakeG)>0||(o.note&&o.note.trim()))); }
+function hasDayData(o){ return !!(o&&(o.trainingId||anyTrue(o.morning)||anyVal(o.cals)||mealProt(o)>0||exHasData(o)||anyVal(o.cardio)||num(o.steps)>0||o.krea||o.shake||num(o.shakeG)>0||(o.note&&o.note.trim()))); }
 function setFilled(e,st){ if(!st)return false; if(e.track==="pullup") return st.reps!==""; return st.kg!==""&&st.reps!==""; }
 function exerciseComplete(week,t,e,d){ if(!d)return false;
   let n=e.sets; if(e.track==="bench"&&t.progType) n=benchPrescription(week,t.progType).sets;
@@ -721,12 +727,15 @@ function renderDay(area){
   // Ernährung
   const CAL=[["b","Frühstück"],["l","Mittag"],["d","Abendessen"],["s","Snacks"]];
   h+='<div class="card accent"><h2>Ernährung</h2><div class="body">';
-  CAL.forEach(([k,lbl])=>{ h+='<div class="frow"><label>'+lbl+'</label><input inputmode="numeric" data-role="cal" data-f="'+k+'" value="'+esc((o.cals&&o.cals[k])||"")+'" placeholder="kcal"><span class="u">kcal</span></div>'; });
-  h+='<div class="caltotal"><span class="l">Gesamt heute</span><span class="v num" id="calTotal">0</span></div>';
+  CAL.forEach(([k,lbl])=>{ h+='<div class="mealrow"><label>'+lbl+'</label>'+
+    '<input inputmode="numeric" data-role="cal" data-f="'+k+'" value="'+esc((o.cals&&o.cals[k])||"")+'" placeholder="kcal"><span class="u">kcal</span>'+
+    '<input inputmode="numeric" data-role="mprot" data-f="'+k+'" value="'+esc((o.prot&&o.prot[k])||"")+'" placeholder="g"><span class="u">g&nbsp;P</span></div>'; });
   // Supplements
   h+='<div class="check'+(o.krea?" on":"")+'" data-role="krea" style="margin-top:8px"><span class="box"></span><span class="lbl">Kreatin</span><span class="det">3 Löffel</span></div>';
   h+='<div class="check'+(o.shake?" on":"")+'" data-role="shake"><span class="box"></span><span class="lbl">Proteinshake</span><span class="det">Haken</span></div>';
   h+='<div class="frow" style="margin-top:6px"><label>Shake Protein</label><input inputmode="numeric" data-role="shakeg" value="'+esc(o.shakeG||"")+'" placeholder="optional"><span class="u">g</span></div>';
+  h+='<div class="caltotal"><span class="l">Gesamt heute</span><span class="v num" id="calTotal">0</span></div>';
+  h+='<div class="caltotal" style="border-top:1px solid var(--line);padding-top:8px"><span class="l">Protein heute<br><span style="font-size:10px;color:var(--muted);font-weight:400">Essen + Shake</span></span><span class="v num" id="protTotal" style="font-size:22px">0 g</span></div>';
   h+='</div></div>';
 
   // Schritte (weit unten, wird spät eingetragen)
@@ -759,9 +768,14 @@ function updateWuCount(){ const o=getDay(curWeek,curDay); if(!o||!o.trainingId)r
   if(t.kind!=="strength")return; const items=WARMUP.concat(t.bench?BENCHWARM:[]);
   const el=document.getElementById("wuCount"); if(el) el.textContent=items.filter(w=>o.warmup[w.id]).length+"/"+items.length; }
 function calTotal(o){ if(!o.cals)return 0; return num(o.cals.b)+num(o.cals.l)+num(o.cals.d)+num(o.cals.s); }
-function updateCalTotal(){ const o=getDay(curWeek,curDay); if(!o)return; const el=document.getElementById("calTotal"); if(!el)return;
-  const tot=calTotal(o); el.textContent=tot; const tgt=num(DB.kcalTarget);
-  el.className="v num"+(tgt?(tot>tgt*1.08?" over":tot<tgt*0.85&&tot>0?" under":tot>0?" ok":""):""); }
+function mealProt(o){ if(!o.prot)return 0; return num(o.prot.b)+num(o.prot.l)+num(o.prot.d)+num(o.prot.s); }
+function protTotal(o){ return mealProt(o)+num(o.shakeG); }
+function updateCalTotal(){ const o=getDay(curWeek,curDay); if(!o)return;
+  const el=document.getElementById("calTotal");
+  if(el){ const tot=calTotal(o); el.textContent=tot; const tgt=num(DB.kcalTarget);
+    el.className="v num"+(tgt?(tot>tgt*1.08?" over":tot<tgt*0.85&&tot>0?" under":tot>0?" ok":""):""); }
+  const pel=document.getElementById("protTotal");
+  if(pel){ const p=protTotal(o); pel.textContent=p+" g"; pel.className="v num"+(p>165?" ok":""); } }
 
 /* ---- day stats + review text ---- */
 function dayStats(o){
@@ -800,6 +814,9 @@ function dayReviewLines(week,day){
     if(tgt){ const diff=s.cals-tgt; cl+=diff>0?(" +"+diff+" über Ziel."):(" "+diff+" unter Ziel."); }
     L.push(cl);
   } else L.push("Kalorien: nicht eingetragen.");
+  // protein
+  const pm=mealProt(o), ps=num(o.shakeG), pt=pm+ps;
+  if(pt>0) L.push("Protein: "+pt+" g (Essen "+pm+" + Shake "+ps+").");
   // supplements
   const shakeG=num(o.shakeG);
   L.push("Kreatin: "+(o.krea?"✓":"–")+" · Proteinshake: "+(o.shake?("✓"+(shakeG>0?" ("+shakeG+" g)":"")):"–"));
@@ -841,7 +858,8 @@ function onInput(ev){
     o.ex[t.dataset.ex][role]=t.value; saveDB();
   } else if(role==="cardio"){ if(!o.cardio)o.cardio={}; o.cardio[t.dataset.f]=t.value; updateDayReview(); saveDB();
   } else if(role==="cal"){ if(!o.cals)o.cals={}; o.cals[t.dataset.f]=t.value; updateCalTotal(); updateDayReview(); saveDB(); }
-  else if(role==="shakeg"){ o.shakeG=t.value; updateDayReview(); saveDB(); }
+  else if(role==="mprot"){ if(!o.prot)o.prot={}; o.prot[t.dataset.f]=t.value; updateCalTotal(); updateDayReview(); saveDB(); }
+  else if(role==="shakeg"){ o.shakeG=t.value; updateCalTotal(); updateDayReview(); saveDB(); }
   else if(role==="meas"){ const wk=ensureWeekObj(curWeek); if(!wk.measures)wk.measures={}; wk.measures[t.dataset.f]=t.value; saveDB(); }
   else if(role==="steps"){ o.steps=t.value; const reached=num(o.steps)>=10000;
     const sc=document.getElementById("stepCheck");
@@ -880,10 +898,11 @@ function benchBestWeek(week){ let b=0; DAYS.forEach(d=>{const o=getDay(week,d); 
 function computeWeekReview(week){
   const counts={brustA:0,brustB:0,rueckenBeine:0,cardio:0};
   let tonnage=0, bench1rm=0, benchTop=0, pullBest=0, cardioMin=0, cardioCount=0;
-  let calDays=0, calSum=0, medDays=0, mcgillDays=0, foamDays=0, trainDays=0, stepSum=0, stepDays=0, shakeDays=0, shakeG=0, kreaDays=0;
+  let calDays=0, calSum=0, medDays=0, mcgillDays=0, foamDays=0, trainDays=0, stepSum=0, stepDays=0, shakeDays=0, shakeG=0, kreaDays=0, protSum=0, protDays=0;
   DAYS.forEach(d=>{ const o=getDay(week,d); if(!o)return;
     if(o.morning){ if(o.morning.med)medDays++; if(o.morning.foam)foamDays++; if(o.morning.m1&&o.morning.m2&&o.morning.m3)mcgillDays++; }
     const ct=calTotal(o); if(ct>0){calDays++;calSum+=ct;}
+    const pt=protTotal(o); if(pt>0){protSum+=pt;protDays++;}
     const stp=num(o.steps); if(stp>0){stepSum+=stp;stepDays++;}
     if(o.shake)shakeDays++; shakeG+=num(o.shakeG); if(o.krea)kreaDays++;
     if(o.trainingId){ counts[o.trainingId]=(counts[o.trainingId]||0)+1;
@@ -908,11 +927,12 @@ function computeWeekReview(week){
   if(pullBest) L.push("Pull-Ups: bester Satz "+pullBest+" Wdh.");
   if(cardioCount) L.push("Cardio: "+cardioCount+"× / "+cardioMin+" min gesamt.");
   L.push("Kalorien: "+(calDays?("Ø "+Math.round(calSum/calDays)+" kcal an "+calDays+" Tagen"):"nicht getrackt")+".");
+  L.push("Protein: "+(protDays?("Ø "+Math.round(protSum/protDays)+" g/Tag (inkl. Shake) an "+protDays+" Tagen"):"nicht getrackt")+".");
   L.push("Schritte gesamt: "+stepSum+(stepDays?(" (Ø "+Math.round(stepSum/stepDays)+"/Tag an "+stepDays+" Tagen)"):"")+".");
   L.push("Proteinshakes: "+shakeDays+"× diese Woche"+(shakeG>0?(" · "+shakeG+" g extern gesamt"):"")+" · Kreatin: "+kreaDays+"/7 Tage.");
   const mm=(DB.weeks[week]&&DB.weeks[week].measures)||{};
-  if(num(mm.chest)||num(mm.waist)||num(mm.biceps)||num(mm.quad)){
-    L.push("Maße (cm): Brust "+(mm.chest||"–")+" · Bauch "+(mm.waist||"–")+" · Bizeps "+(mm.biceps||"–")+" · Quad "+(mm.quad||"–")+".");
+  if(num(mm.chest)||num(mm.waist)||num(mm.biceps)||num(mm.quad)||num(mm.weight)){
+    L.push("Maße: Brust "+(mm.chest||"–")+" · Bauch "+(mm.waist||"–")+" · Bizeps "+(mm.biceps||"–")+" · Quad "+(mm.quad||"–")+" cm"+(num(mm.weight)?(" · Gewicht "+mm.weight+" kg"):"")+".");
   }
   L.push("Morgen-Routine: Meditation "+medDays+"/7 · McGill "+mcgillDays+"/7 · Foam Rolling "+foamDays+"/7.");
   L.push("");
@@ -938,9 +958,9 @@ function renderMeasures(){
   if(curDay!=="So"){ card.style.display="none"; return; }
   card.style.display="";
   const m=(DB.weeks[curWeek]&&DB.weeks[curWeek].measures)||{};
-  const F=[["chest","Brustumfang"],["waist","Bauchumfang"],["biceps","Bizepsumfang"],["quad","Quadumfang"]];
-  box.innerHTML='<p style="margin:0 0 10px;font-size:13px;color:var(--muted)">Sonntags messen (cm):</p>'+
-    F.map(function(f){ return '<div class="frow"><label>'+f[1]+'</label><input inputmode="decimal" data-role="meas" data-f="'+f[0]+'" value="'+esc(m[f[0]]||"")+'" placeholder="cm"><span class="u">cm</span></div>'; }).join("");
+  const F=[["chest","Brustumfang","cm"],["waist","Bauchumfang","cm"],["biceps","Bizepsumfang","cm"],["quad","Quadumfang","cm"],["weight","Körpergewicht","kg"]];
+  box.innerHTML='<p style="margin:0 0 10px;font-size:13px;color:var(--muted)">Sonntags messen:</p>'+
+    F.map(function(f){ return '<div class="frow"><label>'+f[1]+'</label><input inputmode="decimal" data-role="meas" data-f="'+f[0]+'" value="'+esc(m[f[0]]||"")+'" placeholder="'+f[2]+'"><span class="u">'+f[2]+'</span></div>'; }).join("");
 }
 function renderWeekBox(){
   const card=document.getElementById("weekCard");
@@ -982,8 +1002,8 @@ function measurePoints(){
   const pts=[];
   Object.keys(DB.weeks).sort().forEach(wk=>{
     const m=DB.weeks[wk].measures; if(!m) return;
-    const p={chest:num(m.chest)||null,waist:num(m.waist)||null,biceps:num(m.biceps)||null,quad:num(m.quad)||null};
-    if(p.chest||p.waist||p.biceps||p.quad) pts.push(p);
+    const p={chest:num(m.chest)||null,waist:num(m.waist)||null,biceps:num(m.biceps)||null,quad:num(m.quad)||null,weight:num(m.weight)||null};
+    if(p.chest||p.waist||p.biceps||p.quad||p.weight) pts.push(p);
   });
   return pts;
 }
@@ -991,7 +1011,7 @@ function renderMeasureChart(el){
   const pts=measurePoints();
   if(!pts.length){ el.innerHTML='<div class="empty">Noch keine Maße. Sonntags eintragen.</div>'; return; }
   const W=600,H=240,pad=32,padB=22,padT=12,n=pts.length;
-  const series=[{k:"chest",c:"#c8102e"},{k:"waist",c:"#0a0a0a"},{k:"biceps",c:"#1b7a3d"},{k:"quad",c:"#b8860b"}];
+  const series=[{k:"chest",c:"#c8102e"},{k:"waist",c:"#0a0a0a"},{k:"biceps",c:"#1b7a3d"},{k:"quad",c:"#b8860b"},{k:"weight",c:"#6b4fbb"}];
   const vals=[]; pts.forEach(p=>series.forEach(s=>{ if(p[s.k]!=null) vals.push(p[s.k]); }));
   if(!vals.length){ el.innerHTML='<div class="empty">Noch keine Maße.</div>'; return; }
   let maxY=Math.ceil(Math.max.apply(null,vals)/5)*5+2, minY=Math.floor(Math.min.apply(null,vals)/5)*5-2; if(minY<0)minY=0;
