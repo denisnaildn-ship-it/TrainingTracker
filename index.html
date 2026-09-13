@@ -97,7 +97,13 @@ main{max-width:640px;margin:0 auto;padding:14px 14px 30px}
 .check.on .box::after{content:"\2713";font-weight:700}
 .check .lbl{flex:1;font-size:14px}
 .check.on .lbl{color:var(--muted);text-decoration:line-through}
-.check.locked{opacity:.45;pointer-events:none}
+.check.locked{pointer-events:none}
+.check.locked .lbl{color:var(--muted)}
+.check.locked .det{color:var(--muted)}
+.check.locked .box{border-color:var(--red);background:
+  linear-gradient(to top right, transparent 43%, var(--red) 46%, var(--red) 54%, transparent 57%),
+  linear-gradient(to bottom right, transparent 43%, var(--red) 46%, var(--red) 54%, transparent 57%)}
+.check.locked .box::after{content:""}
 .check .det{font-family:'Barlow Condensed';font-size:14px;color:var(--red);font-weight:600;white-space:nowrap}
 
 /* Exercise */
@@ -310,10 +316,8 @@ const MORNING=[
   {id:"m1",  l:"McGill Curl-Up", d:"3x 10s"},
   {id:"m2",  l:"Side Plank",     d:"3x 15s/Seite"},
   {id:"m3",  l:"Bird Dog",       d:"3x 8/Seite"},
-  {id:"foam",l:"Foam Rolling",   d:"5 Min"},
+  {id:"foam",l:"Foam Rolling",   d:"1 Min 30 Sek"},
   {id:"med", l:"Meditation",     d:"taeglich"},
-  {id:"krea",l:"Kreatin",        d:"5g"},
-  {id:"prot",l:"Proteinshake",   d:"1 Portion"},
 ];
 
 const WARMUP=[
@@ -353,13 +357,13 @@ const TRAININGS={
     {id:"lpd",n:"Lat Pulldown",        s:"3x10-12",sets:3, lo:10,hi:12,inc:2.5},
     {id:"csr",n:"Chest-Supported Row", s:"3x10",   sets:3, lo:10,hi:10,inc:2.5},
     {id:"fp", n:"Face Pulls Kabel",    s:"3x15",   sets:3, lo:15,hi:15,inc:1},
-    {id:"bss",n:"Bulgarian Split Squat",s:"3x8/Bein",sets:3,lo:8, hi:8, inc:2},
-    {id:"lp", n:"Leg Press",           s:"3x12",   sets:3, lo:12,hi:12,inc:5},
+    {id:"sq", n:"Squats (Smith)",     s:"3x12",   sets:3, lo:12,hi:12,inc:5, note:"Fuß leicht vor, LWS neutral"},
+    {id:"lc", n:"Leg Curl",          s:"3x12",   sets:3, lo:12,hi:12,inc:5},
     {id:"hc", n:"Hammer Curls",        s:"3x10",   sets:3, lo:10,hi:10,inc:2},
   ]},
   cardio:{tag:"CARDIO", name:"Cardio", kind:"cardio"},
 };
-const TRAIN_ORDER=["brustA","brustB","rueckenBeine","cardio"];
+const TRAIN_ORDER=["brustA","rueckenBeine","brustB","cardio"];
 
 /* 12-Wochen Bench-Programm: 80kg 4x6  ->  100kg 1x3 */
 const PROG_WEEKS=12;
@@ -448,8 +452,10 @@ function writeNow(){
     if(storageBroken){storageBroken=false;hideStorageWarn();} return true; }
   catch(e){ storageBroken=true; showStorageWarn(); return false; }
 }
-function saveDB(){ DB.ui.week=curWeek; DB.ui.day=curDay; clearTimeout(saveTimer); saveTimer=setTimeout(writeNow,120); }
-function flushDB(){ clearTimeout(saveTimer); DB.ui.week=curWeek; DB.ui.day=curDay; writeNow(); }
+function onTrainView(){ const v=document.getElementById("v-train"); return v&&v.classList.contains("active"); }
+function saveDB(){ DB.ui.week=curWeek; DB.ui.day=curDay; DB.ui.lastActive=Date.now(); clearTimeout(saveTimer); saveTimer=setTimeout(writeNow,120); }
+function flushDB(){ clearTimeout(saveTimer); DB.ui.week=curWeek; DB.ui.day=curDay; DB.ui.lastActive=Date.now();
+  if(onTrainView()) DB.ui.scrollY=window.scrollY||window.pageYOffset||0; writeNow(); }
 function deepCopy(o){ return JSON.parse(JSON.stringify(o)); }
 function emptySets(n){ return Array.from({length:n},()=>({kg:"",reps:""})); }
 
@@ -457,6 +463,10 @@ window.addEventListener("pagehide",flushDB);
 window.addEventListener("beforeunload",flushDB);
 window.addEventListener("blur",flushDB);
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") flushDB(); });
+let scrollTimer=null;
+window.addEventListener("scroll",()=>{ clearTimeout(scrollTimer); scrollTimer=setTimeout(()=>{
+  if(onTrainView()){ DB.ui.scrollY=window.scrollY||window.pageYOffset||0; DB.ui.lastActive=Date.now(); writeNow(); }
+},250); },{passive:true});
 if(navigator.storage&&navigator.storage.persist){ navigator.storage.persist().catch(()=>{}); }
 (function(){ try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); }
   catch(e){ storageBroken=true; setTimeout(showStorageWarn,300); } })();
@@ -487,7 +497,7 @@ function ensureDay(w,d){ const k=sKey(w,d); if(!DB.sessions[k]) DB.sessions[k]={
 function anyTrue(o){ if(!o)return false; return Object.keys(o).some(k=>o[k]); }
 function anyVal(o){ if(!o)return false; return Object.keys(o).some(k=>o[k]!==""&&o[k]!=null&&o[k]!==false); }
 function exHasData(o){ if(!o||!o.ex)return false; return Object.keys(o.ex).some(id=>o.ex[id].sets.some(s=>s.kg!==""||s.reps!=="")); }
-function hasDayData(o){ return !!(o&&(o.trainingId||anyTrue(o.morning)||anyVal(o.cals)||exHasData(o)||anyVal(o.cardio)||num(o.steps)>0||(o.note&&o.note.trim()))); }
+function hasDayData(o){ return !!(o&&(o.trainingId||anyTrue(o.morning)||anyVal(o.cals)||exHasData(o)||anyVal(o.cardio)||num(o.steps)>0||o.krea||o.shake||num(o.shakeG)>0||(o.note&&o.note.trim()))); }
 function setFilled(e,st){ if(!st)return false; if(e.track==="pullup") return st.reps!==""; return st.kg!==""&&st.reps!==""; }
 function exerciseComplete(week,t,e,d){ if(!d)return false;
   let n=e.sets; if(e.track==="bench"&&t.progType) n=benchPrescription(week,t.progType).sets;
@@ -565,16 +575,27 @@ function weeksToShow(){
   return Object.keys(set).sort().reverse();
 }
 function weekCountTrainings(w){ let c=0; DAYS.forEach(d=>{const o=getDay(w,d); if(o&&o.trainingId) c++;}); return c; }
+function orderedWeeks(){
+  const out=[], seen={};
+  const push=k=>{ if(k&&!seen[k]){seen[k]=1;out.push(k);} };
+  const testWeek=isoWeekKey(new Date());
+  if(progWeekNum(testWeek)<1) push(testWeek);            // Testwoche ganz oben
+  for(let i=0;i<PROG_WEEKS;i++) push(shiftWeek(DB.progStart,i)); // 1) ... 12)
+  Object.keys(DB.sessions).forEach(k=>push(k.split("|")[0]));
+  Object.keys(DB.weeks).forEach(k=>push(k));
+  push(curWeek);
+  return out;
+}
 function renderWeekList(){
   const sel=document.getElementById("weekSelect");
-  const weeks=weeksToShow();
-  if(weeks.indexOf(curWeek)<0) weeks.unshift(curWeek);
-  sel.innerHTML=weeks.map(key=>{
-    const wk=key.split("-W")[1]; const pw=progWeekNum(key);
-    const inProg=pw>=1&&pw<=PROG_WEEKS; const mon=fmtDate(dayDate(key,"Mo"));
-    const closed=weekClosed(key)?"\u2713 ":"";
-    const core=inProg?("W"+pw+"/12 · "+phaseLabel(key)):(pw===0?("TEST-WOCHE · KW"+wk):("KW"+wk));
-    const label=closed+core+" · ab "+mon;
+  sel.innerHTML=orderedWeeks().map(key=>{
+    const pw=progWeekNum(key); const inProg=pw>=1&&pw<=PROG_WEEKS;
+    const mon=fmtDate(dayDate(key,"Mo")); const closed=weekClosed(key)?"\u2713 ":"";
+    let label;
+    if(inProg){ const hv=benchPrescription(key,"heavy");
+      label=closed+pw+") "+mon+" · "+phaseLabel(key)+" · Bench "+fmtKg(hv.kg)+"×"+hv.reps;
+    } else if(pw<1){ label="TEST · "+mon+" · heute ausprobieren"; }
+    else { label=closed+"KW"+key.split("-W")[1]+" · "+mon; }
     return '<option value="'+key+'"'+(key===curWeek?" selected":"")+'>'+esc(label)+'</option>';
   }).join("");
   const pw=progWeekNum(curWeek); const inProg=pw>=1&&pw<=PROG_WEEKS;
@@ -582,8 +603,8 @@ function renderWeekList(){
   const cnt=weekCountTrainings(curWeek); const cl=weekClosed(curWeek)?" · abgeschlossen":"";
   if(inProg){ const hv=benchPrescription(curWeek,"heavy");
     meta.textContent="Woche "+pw+"/12 · "+phaseLabel(curWeek)+" · Bench heavy "+fmtKg(hv.kg)+"kg "+hv.sets+"×"+hv.reps+" · "+cnt+" Trainings"+cl;
-  } else if(pw===0){
-    meta.textContent="Test-Woche · heute (13.09.) zum Ausprobieren · Programm startet Mo · "+cnt+" Trainings"+cl;
+  } else if(pw<1){
+    meta.textContent="Test-Woche · heute zum Ausprobieren · Programm startet Mo (Woche 1) · "+cnt+" Trainings"+cl;
   } else {
     meta.textContent="KW "+curWeek.split("-W")[1]+" · ab "+fmtDate(dayDate(curWeek,"Mo"))+" · "+cnt+" Trainings"+cl;
   }
@@ -620,9 +641,6 @@ function renderDay(area){
   h+='<div class="card accent"><h2>Morgen-Routine <span class="cnt" id="mCount"></span></h2><div class="body">';
   MORNING.forEach(m=>{ const on=!!o.morning[m.id];
     h+='<div class="check'+(on?" on":"")+'" data-role="morning" data-item="'+m.id+'"><span class="box"></span><span class="lbl">'+m.l+'</span><span class="det">'+m.d+'</span></div>'; });
-  h+='<div class="frow" style="margin-top:10px"><label>Schritte heute</label><input inputmode="numeric" data-role="steps" id="stepInput" value="'+esc(o.steps||"")+'" placeholder="Anzahl"><span class="u">Schr</span></div>';
-  const stReached=num(o.steps)>=10000;
-  h+='<div class="check'+((stReached&&o.stepsDone)?" on":"")+(stReached?"":" locked")+'" data-role="stepcheck" id="stepCheck"><span class="box"></span><span class="lbl">10.000 Schritte erreicht</span><span class="det" id="stepDet">'+(stReached?(o.stepsDone?"✓":"antippen"):"unter Ziel")+'</span></div>';
   h+='</div></div>';
 
   // Training picker
@@ -688,6 +706,17 @@ function renderDay(area){
   h+='<div class="card accent"><h2>Ernährung</h2><div class="body">';
   CAL.forEach(([k,lbl])=>{ h+='<div class="frow"><label>'+lbl+'</label><input inputmode="numeric" data-role="cal" data-f="'+k+'" value="'+esc((o.cals&&o.cals[k])||"")+'" placeholder="kcal"><span class="u">kcal</span></div>'; });
   h+='<div class="caltotal"><span class="l">Gesamt heute</span><span class="v num" id="calTotal">0</span></div>';
+  // Supplements
+  h+='<div class="check'+(o.krea?" on":"")+'" data-role="krea" style="margin-top:8px"><span class="box"></span><span class="lbl">Kreatin</span><span class="det">3 Löffel</span></div>';
+  h+='<div class="check'+(o.shake?" on":"")+'" data-role="shake"><span class="box"></span><span class="lbl">Proteinshake</span><span class="det">Haken</span></div>';
+  h+='<div class="frow" style="margin-top:6px"><label>Shake Protein</label><input inputmode="numeric" data-role="shakeg" value="'+esc(o.shakeG||"")+'" placeholder="optional"><span class="u">g</span></div>';
+  h+='</div></div>';
+
+  // Schritte (weit unten, wird spät eingetragen)
+  const stReached=num(o.steps)>=10000;
+  h+='<div class="card accent"><h2>Schritte</h2><div class="body">';
+  h+='<div class="frow"><label>Schritte heute</label><input inputmode="numeric" data-role="steps" id="stepInput" value="'+esc(o.steps||"")+'" placeholder="Anzahl"><span class="u">Schr</span></div>';
+  h+='<div class="check'+((stReached&&o.stepsDone)?" on":"")+(stReached?"":" locked")+'" data-role="stepcheck" id="stepCheck"><span class="box"></span><span class="lbl">10.000 Schritte erreicht</span><span class="det" id="stepDet">'+(stReached?(o.stepsDone?"✓":"antippen"):"unter Ziel")+'</span></div>';
   h+='</div></div>';
 
   // Tages-Review
@@ -754,6 +783,9 @@ function dayReviewLines(week,day){
     if(tgt){ const diff=s.cals-tgt; cl+=diff>0?(" +"+diff+" über Ziel."):(" "+diff+" unter Ziel."); }
     L.push(cl);
   } else L.push("Kalorien: nicht eingetragen.");
+  // supplements
+  const shakeG=num(o.shakeG);
+  L.push("Kreatin: "+(o.krea?"✓":"–")+" · Proteinshake: "+(o.shake?("✓"+(shakeG>0?" ("+shakeG+" g)":"")):"–"));
   // verdict
   L.push("");
   L.push(dayVerdict(s,medOk));
@@ -792,6 +824,7 @@ function onInput(ev){
     o.ex[t.dataset.ex][role]=t.value; saveDB();
   } else if(role==="cardio"){ if(!o.cardio)o.cardio={}; o.cardio[t.dataset.f]=t.value; updateDayReview(); saveDB();
   } else if(role==="cal"){ if(!o.cals)o.cals={}; o.cals[t.dataset.f]=t.value; updateCalTotal(); updateDayReview(); saveDB(); }
+  else if(role==="shakeg"){ o.shakeG=t.value; updateDayReview(); saveDB(); }
   else if(role==="steps"){ o.steps=t.value; const reached=num(o.steps)>=10000;
     const sc=document.getElementById("stepCheck");
     if(sc){ sc.classList.toggle("locked",!reached); if(!reached){o.stepsDone=false;sc.classList.remove("on");}
@@ -808,6 +841,10 @@ function onClick(ev){
   const m=ev.target.closest('[data-role="morning"]');
   if(m){ const o=ensureDay(curWeek,curDay); const id=m.dataset.item; o.morning[id]=!o.morning[id];
     m.classList.toggle("on",o.morning[id]); updateMCount(); updateDayReview(); saveDB(); return; }
+  const kc=ev.target.closest('[data-role="krea"]');
+  if(kc){ const o=ensureDay(curWeek,curDay); o.krea=!o.krea; kc.classList.toggle("on",o.krea); updateDayReview(); saveDB(); return; }
+  const shk=ev.target.closest('[data-role="shake"]');
+  if(shk){ const o=ensureDay(curWeek,curDay); o.shake=!o.shake; shk.classList.toggle("on",o.shake); updateDayReview(); saveDB(); return; }
   const sc=ev.target.closest('[data-role="stepcheck"]');
   if(sc){ const o=ensureDay(curWeek,curDay); if(num(o.steps)>=10000){ o.stepsDone=!o.stepsDone;
       sc.classList.toggle("on",o.stepsDone); const det=document.getElementById("stepDet"); if(det)det.textContent=o.stepsDone?"✓":"antippen";
@@ -825,11 +862,12 @@ function benchBestWeek(week){ let b=0; DAYS.forEach(d=>{const o=getDay(week,d); 
 function computeWeekReview(week){
   const counts={brustA:0,brustB:0,rueckenBeine:0,cardio:0};
   let tonnage=0, bench1rm=0, benchTop=0, pullBest=0, cardioMin=0, cardioCount=0;
-  let calDays=0, calSum=0, medDays=0, mcgillDays=0, foamDays=0, trainDays=0, stepSum=0, stepDays=0;
+  let calDays=0, calSum=0, medDays=0, mcgillDays=0, foamDays=0, trainDays=0, stepSum=0, stepDays=0, shakeDays=0, shakeG=0, kreaDays=0;
   DAYS.forEach(d=>{ const o=getDay(week,d); if(!o)return;
     if(o.morning){ if(o.morning.med)medDays++; if(o.morning.foam)foamDays++; if(o.morning.m1&&o.morning.m2&&o.morning.m3)mcgillDays++; }
     const ct=calTotal(o); if(ct>0){calDays++;calSum+=ct;}
     const stp=num(o.steps); if(stp>0){stepSum+=stp;stepDays++;}
+    if(o.shake)shakeDays++; shakeG+=num(o.shakeG); if(o.krea)kreaDays++;
     if(o.trainingId){ counts[o.trainingId]=(counts[o.trainingId]||0)+1;
       const t=TRAININGS[o.trainingId];
       if(t.kind==="strength"){ let dayHas=false; t.ex.forEach(e=>{const dd=o.ex[e.id];if(!dd)return;
@@ -853,6 +891,7 @@ function computeWeekReview(week){
   if(cardioCount) L.push("Cardio: "+cardioCount+"× / "+cardioMin+" min gesamt.");
   L.push("Kalorien: "+(calDays?("Ø "+Math.round(calSum/calDays)+" kcal an "+calDays+" Tagen"):"nicht getrackt")+".");
   L.push("Schritte gesamt: "+stepSum+(stepDays?(" (Ø "+Math.round(stepSum/stepDays)+"/Tag an "+stepDays+" Tagen)"):"")+".");
+  L.push("Proteinshakes: "+shakeDays+"× diese Woche"+(shakeG>0?(" · "+shakeG+" g extern gesamt"):"")+" · Kreatin: "+kreaDays+"/7 Tage.");
   L.push("Morgen-Routine: Meditation "+medDays+"/7 · McGill "+mcgillDays+"/7 · Foam Rolling "+foamDays+"/7.");
   L.push("");
   L.push(weekVerdict({totalTrain,medDays,calDays,bench1rm,prevBest}));
@@ -871,13 +910,19 @@ function weekVerdict(x){
   return p.join(" ");
 }
 function renderWeekBox(){
+  const card=document.getElementById("weekCard");
   const box=document.getElementById("weekBox");
   const wk=curWeek.split("-W")[1];
   const w=DB.weeks[curWeek];
-  if(w&&w.closed){
-    box.innerHTML='<div class="review" style="margin-bottom:12px"><span class="big">Wochen-Review · KW '+wk+'</span>'+esc(w.review||"")+'</div>'+
-      '<button class="btn ghost" id="reopenW">Woche wieder öffnen</button>';
-    document.getElementById("reopenW").addEventListener("click",()=>{ DB.weeks[curWeek].closed=false; saveDB(); renderTrain(); });
+  const closed=!!(w&&w.closed);
+  const isSunday=todayAbbr()==="So";
+  // Abschließen nur sonntags; an anderen Tagen nur ein bereits erstelltes Review zeigen
+  if(!isSunday && !closed){ card.style.display="none"; return; }
+  card.style.display="";
+  if(closed){
+    box.innerHTML='<div class="review"'+(isSunday?' style="margin-bottom:12px"':'')+'><span class="big">Wochen-Review · KW '+wk+'</span>'+esc(w.review||"")+'</div>'+
+      (isSunday?'<button class="btn ghost" id="reopenW">Woche wieder öffnen</button>':'');
+    if(isSunday) document.getElementById("reopenW").addEventListener("click",()=>{ DB.weeks[curWeek].closed=false; saveDB(); renderTrain(); });
   } else {
     box.innerHTML='<p style="margin:0 0 12px;font-size:13px;color:var(--muted)">Schließt du die Woche ab, wird ein Wochen-Review erstellt und die Woche markiert.</p>'+
       '<button class="btn" id="closeW">Woche abschließen · Review erstellen</button>';
@@ -968,7 +1013,7 @@ function renderPlan(){
     '<li><b>Reps vor Last:</b> erst alle Sätze sauber im Zielbereich, dann Gewicht rauf.</li>'+
     '<li><b>Volle ROM:</b> Brustkontakt, kein Abbruch 3 cm drüber — sonst zählt der Rep nicht.</li>'+
     '<li><b>Woche 6 Deload:</b> bewusst leicht, das ist kein Rückschritt sondern Voraussetzung fürs Peak.</li>'+
-    '<li><b>Kein Deadlift/Back Squat:</b> Beine über Split Squat &amp; Leg Press (LWS-Schutz).</li>'+
+    '<li><b>Kein Deadlift/Back Squat:</b> Beine über Smith-Squat &amp; Leg Curl (LWS-Schutz).</li>'+
     '<li><b>Ehrlich:</b> 100×3 in Woche 12 ist ambitioniert. Triffst du es nicht, bist du sehr nah dran — dann Peak (W9-12) einmal wiederholen, nicht frustriert sein.</li>'+
     '</ul>';
 }
@@ -997,7 +1042,18 @@ document.getElementById("resetBtn").addEventListener("click",()=>{
 
 /* ================= INIT ================= */
 document.getElementById("weekSelect").addEventListener("change",e=>{ curWeek=e.target.value; saveDB(); renderTrain(); window.scrollTo(0,0); });
+
+const RESUME_MS=2*60*60*1000;
+const sinceLast=Date.now()-(DB.ui.lastActive||0);
+const curKW=isoWeekKey(new Date());
+const today=todayAbbr();
+// Beim Öffnen immer aktuelle Woche + heutigen Wochentag auswählen
+const continuingToday = sinceLast<RESUME_MS && DB.ui.week===curKW && DB.ui.day===today;
+curWeek=curKW;
+curDay=today;
 renderTrain();
+if(continuingToday){ const y=DB.ui.scrollY||0; if(y>0) setTimeout(()=>window.scrollTo(0,y),70); }
+else { window.scrollTo(0,0); }
 </script>
 </body>
 </html>
