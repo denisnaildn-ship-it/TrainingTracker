@@ -223,6 +223,10 @@ nav button .ic{display:block;font-size:18px;margin-bottom:2px;color:#8f8a81}
     <div class="weekmeta" id="weekMeta"></div>
     <div class="daytabs" id="dayTabs"></div>
     <div id="dayArea"></div>
+    <div class="card accent" id="measCard">
+      <h2>Maßzahlen</h2>
+      <div class="body" id="measBox"></div>
+    </div>
     <div class="card accent" id="weekCard">
       <h2>Woche</h2>
       <div class="body" id="weekBox"></div>
@@ -259,6 +263,18 @@ nav button .ic{display:block;font-size:18px;margin-bottom:2px;color:#8f8a81}
       <div class="body">
         <div class="chart-wrap" id="pullChart"></div>
         <div class="legend"><span><i style="background:var(--red)"></i>Beste Satz-Wdh</span></div>
+      </div>
+    </div>
+    <div class="card accent">
+      <h2>Körpermaße Verlauf</h2>
+      <div class="body">
+        <div class="chart-wrap" id="measChart"></div>
+        <div class="legend">
+          <span><i style="background:var(--red)"></i>Brust</span>
+          <span><i style="background:var(--ink)"></i>Bauch</span>
+          <span><i style="background:#1b7a3d"></i>Bizeps</span>
+          <span><i style="background:#b8860b"></i>Quad</span>
+        </div>
       </div>
     </div>
     <div class="card"><h2>History</h2><div class="body" id="histList"></div></div>
@@ -628,6 +644,7 @@ function renderTrain(){
   const area=document.getElementById("dayArea");
   if(!curDay){ area.innerHTML='<div class="empty">Tippe oben einen Tag an, um ihn zu öffnen.<br>Erneut tippen schließt ihn wieder.</div>'; }
   else renderDay(area);
+  renderMeasures();
   renderWeekBox();
   saveDB();
 }
@@ -825,6 +842,7 @@ function onInput(ev){
   } else if(role==="cardio"){ if(!o.cardio)o.cardio={}; o.cardio[t.dataset.f]=t.value; updateDayReview(); saveDB();
   } else if(role==="cal"){ if(!o.cals)o.cals={}; o.cals[t.dataset.f]=t.value; updateCalTotal(); updateDayReview(); saveDB(); }
   else if(role==="shakeg"){ o.shakeG=t.value; updateDayReview(); saveDB(); }
+  else if(role==="meas"){ const wk=ensureWeekObj(curWeek); if(!wk.measures)wk.measures={}; wk.measures[t.dataset.f]=t.value; saveDB(); }
   else if(role==="steps"){ o.steps=t.value; const reached=num(o.steps)>=10000;
     const sc=document.getElementById("stepCheck");
     if(sc){ sc.classList.toggle("locked",!reached); if(!reached){o.stepsDone=false;sc.classList.remove("on");}
@@ -892,6 +910,10 @@ function computeWeekReview(week){
   L.push("Kalorien: "+(calDays?("Ø "+Math.round(calSum/calDays)+" kcal an "+calDays+" Tagen"):"nicht getrackt")+".");
   L.push("Schritte gesamt: "+stepSum+(stepDays?(" (Ø "+Math.round(stepSum/stepDays)+"/Tag an "+stepDays+" Tagen)"):"")+".");
   L.push("Proteinshakes: "+shakeDays+"× diese Woche"+(shakeG>0?(" · "+shakeG+" g extern gesamt"):"")+" · Kreatin: "+kreaDays+"/7 Tage.");
+  const mm=(DB.weeks[week]&&DB.weeks[week].measures)||{};
+  if(num(mm.chest)||num(mm.waist)||num(mm.biceps)||num(mm.quad)){
+    L.push("Maße (cm): Brust "+(mm.chest||"–")+" · Bauch "+(mm.waist||"–")+" · Bizeps "+(mm.biceps||"–")+" · Quad "+(mm.quad||"–")+".");
+  }
   L.push("Morgen-Routine: Meditation "+medDays+"/7 · McGill "+mcgillDays+"/7 · Foam Rolling "+foamDays+"/7.");
   L.push("");
   L.push(weekVerdict({totalTrain,medDays,calDays,bench1rm,prevBest}));
@@ -908,6 +930,17 @@ function weekVerdict(x){
   else if(x.medDays<=2) p.push("Meditation lief kaum — leichter Fix für nächste Woche.");
   if(x.calDays<=2) p.push("Ernährung kaum getrackt — ohne Daten kein Überblick.");
   return p.join(" ");
+}
+function ensureWeekObj(wk){ if(!DB.weeks[wk]) DB.weeks[wk]={closed:false}; return DB.weeks[wk]; }
+function renderMeasures(){
+  const card=document.getElementById("measCard");
+  const box=document.getElementById("measBox");
+  if(curDay!=="So"){ card.style.display="none"; return; }
+  card.style.display="";
+  const m=(DB.weeks[curWeek]&&DB.weeks[curWeek].measures)||{};
+  const F=[["chest","Brustumfang"],["waist","Bauchumfang"],["biceps","Bizepsumfang"],["quad","Quadumfang"]];
+  box.innerHTML='<p style="margin:0 0 10px;font-size:13px;color:var(--muted)">Sonntags messen (cm):</p>'+
+    F.map(function(f){ return '<div class="frow"><label>'+f[1]+'</label><input inputmode="decimal" data-role="meas" data-f="'+f[0]+'" value="'+esc(m[f[0]]||"")+'" placeholder="cm"><span class="u">cm</span></div>'; }).join("");
 }
 function renderWeekBox(){
   const card=document.getElementById("weekCard");
@@ -927,7 +960,8 @@ function renderWeekBox(){
     box.innerHTML='<p style="margin:0 0 12px;font-size:13px;color:var(--muted)">Schließt du die Woche ab, wird ein Wochen-Review erstellt und die Woche markiert.</p>'+
       '<button class="btn" id="closeW">Woche abschließen · Review erstellen</button>';
     document.getElementById("closeW").addEventListener("click",()=>{
-      const rev=computeWeekReview(curWeek); DB.weeks[curWeek]={closed:true,review:rev}; saveDB(); renderTrain(); window.scrollTo(0,document.body.scrollHeight);
+      const rev=computeWeekReview(curWeek); const ex=DB.weeks[curWeek]||{};
+      DB.weeks[curWeek]=Object.assign({},ex,{closed:true,review:rev}); saveDB(); renderTrain(); window.scrollTo(0,document.body.scrollHeight);
     });
   }
 }
@@ -943,6 +977,36 @@ function pullPoints(){ const pts=[]; allSessions().forEach(s=>{ const o=s.o; if(
   t.ex.forEach(e=>{ if(e.track!=="pullup")return; const d=o.ex[e.id]; if(!d)return;
     d.sets.forEach(st=>{if(+st.reps>best)best=+st.reps;}); });
   if(best>0)pts.push({date:s.date,v:best}); }); return pts; }
+
+function measurePoints(){
+  const pts=[];
+  Object.keys(DB.weeks).sort().forEach(wk=>{
+    const m=DB.weeks[wk].measures; if(!m) return;
+    const p={chest:num(m.chest)||null,waist:num(m.waist)||null,biceps:num(m.biceps)||null,quad:num(m.quad)||null};
+    if(p.chest||p.waist||p.biceps||p.quad) pts.push(p);
+  });
+  return pts;
+}
+function renderMeasureChart(el){
+  const pts=measurePoints();
+  if(!pts.length){ el.innerHTML='<div class="empty">Noch keine Maße. Sonntags eintragen.</div>'; return; }
+  const W=600,H=240,pad=32,padB=22,padT=12,n=pts.length;
+  const series=[{k:"chest",c:"#c8102e"},{k:"waist",c:"#0a0a0a"},{k:"biceps",c:"#1b7a3d"},{k:"quad",c:"#b8860b"}];
+  const vals=[]; pts.forEach(p=>series.forEach(s=>{ if(p[s.k]!=null) vals.push(p[s.k]); }));
+  if(!vals.length){ el.innerHTML='<div class="empty">Noch keine Maße.</div>'; return; }
+  let maxY=Math.ceil(Math.max.apply(null,vals)/5)*5+2, minY=Math.floor(Math.min.apply(null,vals)/5)*5-2; if(minY<0)minY=0;
+  const x=i=> n===1?W/2:pad+i*(W-pad-8)/(n-1);
+  const y=v=> padT+(H-padT-padB)*(1-(v-minY)/(maxY-minY||1));
+  let g=""; const step=Math.max(2,Math.round((maxY-minY)/6));
+  for(let v=minY;v<=maxY;v+=step){ g+='<line x1="'+pad+'" y1="'+y(v).toFixed(1)+'" x2="'+W+'" y2="'+y(v).toFixed(1)+'" stroke="#eee"/>';
+    g+='<text x="2" y="'+(y(v)+4).toFixed(1)+'" font-size="11" fill="#999" font-family="Barlow Condensed">'+v+'</text>'; }
+  series.forEach(s=>{ let d="",started=false;
+    pts.forEach((p,i)=>{ if(p[s.k]==null)return; d+=(started?"L":"M")+x(i).toFixed(1)+" "+y(p[s.k]).toFixed(1)+" "; started=true; });
+    if(d) g+='<path d="'+d.trim()+'" fill="none" stroke="'+s.c+'" stroke-width="2" stroke-linejoin="round"/>';
+    pts.forEach((p,i)=>{ if(p[s.k]==null)return; g+='<circle cx="'+x(i).toFixed(1)+'" cy="'+y(p[s.k]).toFixed(1)+'" r="2.6" fill="'+s.c+'"/>'; });
+  });
+  el.innerHTML='<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">'+g+'</svg>';
+}
 
 function lineChart(el,pts,keys,goal){
   if(!pts.length){ el.innerHTML='<div class="empty">Noch keine Daten.</div>'; return; }
@@ -975,6 +1039,7 @@ function renderHistory(){
   renderStats();
   lineChart(document.getElementById("benchChart"),benchPoints(),[{k:"w",c:"#0a0a0a",w:2},{k:"rm",c:"#c8102e",w:2.5}],100);
   lineChart(document.getElementById("pullChart"),pullPoints(),[{k:"v",c:"#c8102e",w:2.5}],null);
+  renderMeasureChart(document.getElementById("measChart"));
   const list=document.getElementById("histList");
   const all=allSessions().filter(s=>hasDayData(s.o)).reverse();
   if(!all.length){ list.innerHTML='<div class="empty">Noch keine Einträge.</div>'; return; }
