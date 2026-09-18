@@ -218,7 +218,7 @@ nav button .ic{display:block;font-size:18px;margin-bottom:2px;color:#8f8a81}
 <body>
 <header>
   <div class="brand"><span class="bar"></span>
-    <div><h1>Training Tracker</h1><div class="sub">80 &#8594; 100 kg Bench · 12 Wochen</div></div>
+    <div><h1>Training Tracker</h1><div class="sub">3er-Split · Ziel 100 kg Bench</div></div>
   </div>
 </header>
 
@@ -240,13 +240,13 @@ nav button .ic{display:block;font-size:18px;margin-bottom:2px;color:#8f8a81}
 
   <section id="v-plan" class="view">
     <div class="card accent">
-      <h2>12-Wochen Plan</h2>
+      <h2>Trainingsplan</h2>
       <div class="body">
-        <div style="font-family:'Oswald';text-transform:uppercase;font-weight:700;font-size:18px;line-height:1.1">80 kg 4×6 &#8594; 100 kg 1×3</div>
-        <p style="font-size:13px;color:var(--ink2);margin:8px 0 0;line-height:1.5">Bench-Progression über 12 Wochen. Brust A = schwer, Brust B = Volumen/Speed. Rücken &amp; Beine und Cardio laufen frei nebenher. Reps zuerst sauber treffen, dann steigern.</p>
+        <div style="font-family:'Oswald';text-transform:uppercase;font-weight:700;font-size:18px;line-height:1.1">3er-Split · 13 Wdh</div>
+        <p style="font-size:13px;color:var(--ink2);margin:8px 0 0;line-height:1.5">Brust/Schulter/Trizeps · Rücken/Bizeps · Beine/Accessory. Cardio optional. Ziel bleibt 100 kg Bench (Tracking im Verlauf).</p>
       </div>
     </div>
-    <div class="card"><h2>Bench-Fahrplan</h2><div class="body" id="planTable"></div></div>
+    <div class="card"><h2>Übungen pro Tag</h2><div class="body" id="planTable"></div></div>
     <div class="card accent"><h2>Prinzip</h2><div class="body" id="planNotes"></div></div>
   </section>
 
@@ -359,33 +359,34 @@ const BENCHWARM=[
 const CARDIO_ACTS=["Rad","Laufen","Rudern","Crosstrainer","Schwimmen","Sonstiges"];
 
 const TRAININGS={
-  brustA:{tag:"BRUST A", name:"Brust Heavy", kind:"strength", bench:true, progType:"heavy", ex:[
-    {id:"bp", n:"Bench Press",         s:"4x4-6", sets:4, lo:4, hi:6, inc:2.5, main:true, track:"bench"},
-    {id:"idb",n:"Incline DB Press",    s:"3x8-10",sets:3, lo:8, hi:10,inc:2},
-    {id:"csr",n:"Chest-Supported Row", s:"3x10",  sets:3, lo:10,hi:10,inc:2.5},
-    {id:"fp", n:"Face Pulls Kabel",    s:"3x15",  sets:3, lo:15,hi:15,inc:1},
-    {id:"gs", n:"Goblet Squat",        s:"3x12",  sets:3, lo:12,hi:12,inc:2.5},
+  tag1:{tag:"TAG 1", name:"Brust · Schulter · Trizeps", kind:"strength", bench:true, ex:[
+    {id:"bp",  n:"Bench Press",              s:"3×13", sets:3, lo:13,hi:13,inc:2.5, track:"bench", note:"Kontrolliert; ab 13 WH Gewicht hoch"},
+    {id:"idb", n:"Incline Bench Press (DB)", s:"2×13", sets:2, lo:13,hi:13,inc:2},
+    {id:"cf",  n:"Chest Fly",                s:"1×13", sets:1, lo:13,hi:13,inc:1, note:"Finisher: leicht, langsam"},
+    {id:"lr",  n:"Lateral Raise (Cable)",    s:"2×13", sets:2, lo:13,hi:13,inc:1, note:"Kein Reißen"},
+    {id:"fp",  n:"Face Pull (Cable)",        s:"2×13", sets:2, lo:13,hi:13,inc:1},
+    {id:"tri", n:"Triceps Extension",        s:"3×13", sets:3, lo:13,hi:13,inc:2, note:"Ellbogen fixiert"},
   ]},
-  brustB:{tag:"BRUST B", name:"Brust Volumen", kind:"strength", bench:true, progType:"volume", ex:[
-    {id:"bp", n:"Bench Press",         s:"4x8",   sets:4, lo:8, hi:8, inc:2.5, main:true, track:"bench"},
-    {id:"lmp",n:"Landmine Press kniend",s:"3x10", sets:3, lo:10,hi:10,inc:2.5},
-    {id:"idb",n:"Incline DB Press",    s:"3x10",  sets:3, lo:10,hi:10,inc:2},
-    {id:"cf", n:"Cable Fly",           s:"3x12-15",sets:3,lo:12,hi:15,inc:1},
-    {id:"csr",n:"Chest-Supported Row", s:"3x12",  sets:3, lo:12,hi:12,inc:2.5},
-    {id:"szc",n:"SZ-Bar Curls",        s:"3x10",  sets:3, lo:10,hi:10,inc:2.5},
+  tag2:{tag:"TAG 2", name:"Rücken · Bizeps", kind:"strength", bench:false, ex:[
+    {id:"pu",  n:"Pull Up",                  s:"3×13", sets:3, lo:13,hi:13,inc:0, track:"pullup"},
+    {id:"bex", n:"Back Extension",           s:"2×13", sets:2, lo:13,hi:13,inc:0, note:"Langsam, unterer Rücken"},
+    {id:"lpd", n:"Lat Pulldown (Cable)",     s:"3×13", sets:3, lo:13,hi:13,inc:2.5},
+    {id:"csr", n:"Chest Supported Row",      s:"2×13", sets:2, lo:13,hi:13,inc:2.5},
+    {id:"fp",  n:"Face Pull (Cable)",        s:"2×13", sets:2, lo:13,hi:13,inc:1},
+    {id:"bic", n:"Bicep Curl (SZ-Stange)",   s:"2×13", sets:2, lo:13,hi:13,inc:2.5},
+    {id:"hc",  n:"Hammer Curl (Cable)",      s:"2×13", sets:2, lo:13,hi:13,inc:1},
   ]},
-  rueckenBeine:{tag:"RÜCKEN & BEINE", name:"Rücken & Beine", kind:"strength", bench:false, ex:[
-    {id:"pu", n:"Pull-Ups",            s:"4x max", sets:4, lo:6, hi:12, inc:0, track:"pullup"},
-    {id:"lpd",n:"Lat Pulldown",        s:"3x10-12",sets:3, lo:10,hi:12,inc:2.5},
-    {id:"csr",n:"Chest-Supported Row", s:"3x10",   sets:3, lo:10,hi:10,inc:2.5},
-    {id:"fp", n:"Face Pulls Kabel",    s:"3x15",   sets:3, lo:15,hi:15,inc:1},
-    {id:"sq", n:"Squats (Smith)",     s:"3x12",   sets:3, lo:12,hi:12,inc:5, note:"Fuß leicht vor, LWS neutral"},
-    {id:"lc", n:"Leg Curl",          s:"3x12",   sets:3, lo:12,hi:12,inc:5},
-    {id:"hc", n:"Hammer Curls",        s:"3x10",   sets:3, lo:10,hi:10,inc:2},
+  tag3:{tag:"TAG 3", name:"Beine · Accessory · Unterarme", kind:"strength", bench:false, ex:[
+    {id:"lc",   n:"Seated Leg Curl",         s:"3×13", sets:3, lo:13,hi:13,inc:5, note:"Liegend auch möglich"},
+    {id:"sq",   n:"Squat (Smith)",           s:"3×13", sets:3, lo:13,hi:13,inc:5, note:"LWS neutral halten"},
+    {id:"lext", n:"Leg Extension",           s:"2×13", sets:2, lo:13,hi:13,inc:5, note:"Finisher: alles geben"},
+    {id:"csr",  n:"Chest Supported Row",     s:"2×13", sets:2, lo:13,hi:13,inc:2.5},
+    {id:"cf",   n:"Chest Fly",               s:"2×13", sets:2, lo:13,hi:13,inc:1},
+    {id:"wc",   n:"Wrist Curls",             s:"2×13", sets:2, lo:13,hi:13,inc:1, note:"Technik checken"},
   ]},
   cardio:{tag:"CARDIO", name:"Cardio", kind:"cardio"},
 };
-const TRAIN_ORDER=["brustA","rueckenBeine","brustB","cardio"];
+const TRAIN_ORDER=["tag1","tag2","tag3","cardio"];
 
 /* 12-Wochen Bench-Programm: 80kg 4x6  ->  100kg 1x3 */
 const PROG_WEEKS=12;
@@ -455,7 +456,7 @@ function loadDB(){
 function migrateV2(o){
   const db=defaultDB();
   db.base1RM=o.base1RM||90;
-  const map={day1:"brustA",day3:"brustB",day2:"rueckenBeine",day4:"brustA"};
+  const map={day1:"tag1",day3:"tag3",day2:"tag2",day4:"tag1"};
   Object.keys(o.sessions||{}).forEach(k=>{
     const s=o.sessions[k]; const tid=map[s.trainingId];
     if(!tid) return;
@@ -613,23 +614,19 @@ function renderWeekList(){
   sel.innerHTML=orderedWeeks().map(key=>{
     const pw=progWeekNum(key); const inProg=pw>=1&&pw<=PROG_WEEKS;
     const mon=fmtDate(dayDate(key,"Mo")); const closed=weekClosed(key)?"\u2713 ":"";
+    const cnt=weekCountTrainings(key);
     let label;
-    if(inProg){ const hv=benchPrescription(key,"heavy");
-      label=closed+pw+") "+mon+" · "+phaseLabel(key)+" · Bench "+fmtKg(hv.kg)+"×"+hv.reps;
-    } else if(pw<1){ label="TEST · "+mon+" · heute ausprobieren"; }
-    else { label=closed+"KW"+key.split("-W")[1]+" · "+mon; }
+    if(inProg){ label=closed+pw+") "+mon+" · "+cnt+" Trainings"; }
+    else if(pw<1){ label="TEST · "+mon+" · heute ausprobieren"; }
+    else { label=closed+"KW"+key.split("-W")[1]+" · "+mon+" · "+cnt+" Trainings"; }
     return '<option value="'+key+'"'+(key===curWeek?" selected":"")+'>'+esc(label)+'</option>';
   }).join("");
   const pw=progWeekNum(curWeek); const inProg=pw>=1&&pw<=PROG_WEEKS;
   const meta=document.getElementById("weekMeta");
   const cnt=weekCountTrainings(curWeek); const cl=weekClosed(curWeek)?" · abgeschlossen":"";
-  if(inProg){ const hv=benchPrescription(curWeek,"heavy");
-    meta.textContent="Woche "+pw+"/12 · "+phaseLabel(curWeek)+" · Bench heavy "+fmtKg(hv.kg)+"kg "+hv.sets+"×"+hv.reps+" · "+cnt+" Trainings"+cl;
-  } else if(pw<1){
-    meta.textContent="Test-Woche · heute zum Ausprobieren · Programm startet Mo (Woche 1) · "+cnt+" Trainings"+cl;
-  } else {
-    meta.textContent="KW "+curWeek.split("-W")[1]+" · ab "+fmtDate(dayDate(curWeek,"Mo"))+" · "+cnt+" Trainings"+cl;
-  }
+  if(inProg){ meta.textContent="Woche "+pw+" · ab "+fmtDate(dayDate(curWeek,"Mo"))+" · "+cnt+" Trainings"+cl;
+  } else if(pw<1){ meta.textContent="Test-Woche · heute zum Ausprobieren · Woche 1 startet Mo · "+cnt+" Trainings"+cl;
+  } else { meta.textContent="KW "+curWeek.split("-W")[1]+" · ab "+fmtDate(dayDate(curWeek,"Mo"))+" · "+cnt+" Trainings"+cl; }
 }
 
 /* ================= RENDER TRAIN ================= */
@@ -896,7 +893,7 @@ function benchBestWeek(week){ let b=0; DAYS.forEach(d=>{const o=getDay(week,d); 
     dd.sets.forEach(s=>{const v=epley(s.kg,s.reps);if(v>b)b=v;}); }); }); return b; }
 
 function computeWeekReview(week){
-  const counts={brustA:0,brustB:0,rueckenBeine:0,cardio:0};
+  const counts={tag1:0,tag2:0,tag3:0,cardio:0};
   let tonnage=0, bench1rm=0, benchTop=0, pullBest=0, cardioMin=0, cardioCount=0;
   let calDays=0, calSum=0, medDays=0, mcgillDays=0, foamDays=0, trainDays=0, stepSum=0, stepDays=0, shakeDays=0, shakeG=0, kreaDays=0, protSum=0, protDays=0;
   DAYS.forEach(d=>{ const o=getDay(week,d); if(!o)return;
@@ -916,8 +913,8 @@ function computeWeekReview(week){
   });
   const prevBest=benchBestWeek(shiftWeek(week,-1));
   const L=[];
-  const totalTrain=counts.brustA+counts.brustB+counts.rueckenBeine+counts.cardio;
-  L.push("Trainings: "+totalTrain+" ("+counts.brustA+"× Brust A, "+counts.brustB+"× Brust B, "+counts.rueckenBeine+"× Rücken/Beine, "+counts.cardio+"× Cardio).");
+  const totalTrain=counts.tag1+counts.tag2+counts.tag3+counts.cardio;
+  L.push("Trainings: "+totalTrain+" ("+counts.tag1+"× Tag 1, "+counts.tag2+"× Tag 2, "+counts.tag3+"× Tag 3, "+counts.cardio+"× Cardio).");
   L.push("Gesamt-Tonnage: "+Math.round(tonnage)+" kg.");
   if(bench1rm){ let trend=""; if(prevBest){ const diff=bench1rm-prevBest;
       trend=diff>0.5?(" ↑ +"+fmtKg(diff)+" kg zur Vorwoche"):diff<-0.5?(" ↓ "+fmtKg(diff)+" kg zur Vorwoche"):" → wie Vorwoche"; }
@@ -1081,25 +1078,21 @@ function renderHistory(){
 
 /* ================= PLAN ================= */
 function renderPlan(){
-  const curPw=progWeekNum(curWeek);
-  let rows="";
-  for(let i=0;i<PROG_WEEKS;i++){
-    const h=BENCH_PROG.heavy[i], v=BENCH_PROG.volume[i], ph=PHASE_BY_WEEK[i];
-    const cls=[]; if(i+1===curPw)cls.push("cur"); if(h.deload)cls.push("dl"); if(ph==="Test")cls.push("test");
-    rows+='<tr class="'+cls.join(" ")+'"><td class="w">W'+(i+1)+'<div class="ph">'+ph+'</div></td>'+
-      '<td>'+fmtKg(h.kg)+' · '+h.sets+'×'+h.reps+'</td>'+
-      '<td>'+fmtKg(v.kg)+' · '+v.sets+'×'+v.reps+'</td></tr>';
-  }
-  document.getElementById("planTable").innerHTML=
-    '<table class="ptbl"><thead><tr><th>Woche</th><th>Brust A (schwer)</th><th>Brust B (Volumen)</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<p style="font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.5">Zahlen = Bench Press Arbeitssätze. Warm-Up-Sätze kommen davor. Aktuelle Woche ist markiert; Start änderst du im Setup.</p>';
+  let html="";
+  ["tag1","tag2","tag3"].forEach(id=>{ const t=TRAININGS[id];
+    html+='<div style="margin-bottom:16px"><div style="font-family:\'Oswald\';text-transform:uppercase;font-weight:700;font-size:15px"><span style="color:var(--red)">'+t.tag+'</span> · '+esc(t.name)+'</div>';
+    html+='<table class="ptbl" style="margin-top:6px"><tbody>';
+    t.ex.forEach(e=>{ html+='<tr><td>'+esc(e.n)+(e.note?'<div class="ph" style="color:var(--muted)">'+esc(e.note)+'</div>':'')+'</td><td class="w" style="text-align:right;width:70px">'+e.s+'</td></tr>'; });
+    html+='</tbody></table></div>';
+  });
+  document.getElementById("planTable").innerHTML=html+
+    '<p style="font-size:12px;color:var(--muted);margin:4px 0 0;line-height:1.5">Cardio (Rad/Schwimmen/Spazieren) als eigener Tag, optional. Pausen 2:00.</p>';
   document.getElementById("planNotes").innerHTML=
     '<ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.6">'+
-    '<li><b>Reps vor Last:</b> erst alle Sätze sauber im Zielbereich, dann Gewicht rauf.</li>'+
-    '<li><b>Volle ROM:</b> Brustkontakt, kein Abbruch 3 cm drüber — sonst zählt der Rep nicht.</li>'+
-    '<li><b>Woche 6 Deload:</b> bewusst leicht, das ist kein Rückschritt sondern Voraussetzung fürs Peak.</li>'+
-    '<li><b>Kein Deadlift/Back Squat:</b> Beine über Smith-Squat &amp; Leg Curl (LWS-Schutz).</li>'+
-    '<li><b>Ehrlich:</b> 100×3 in Woche 12 ist ambitioniert. Triffst du es nicht, bist du sehr nah dran — dann Peak (W9-12) einmal wiederholen, nicht frustriert sein.</li>'+
+    '<li><b>13 Wiederholungen</b> pro Satz als Ziel; alle Sätze sauber mit 13 → Gewicht hoch (Doppelprogression).</li>'+
+    '<li><b>Reps vor Last:</b> saubere, kontrollierte Ausführung vor Ego — kein Reißen.</li>'+
+    '<li><b>Beine LWS-schonend:</b> Smith-Squat, Leg Curl &amp; Leg Extension statt Deadlift/Back Squat.</li>'+
+    '<li><b>Bench</b> wird weiter fürs 1RM getrackt (Ziel 100 kg) — siehe Verlauf.</li>'+
     '</ul>';
 }
 
