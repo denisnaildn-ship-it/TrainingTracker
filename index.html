@@ -296,11 +296,6 @@ nav button .ic{display:block;font-size:18px;margin-bottom:2px;color:#8f8a81}
           <div class="hint">Grundlage für die Aufwärmsätze (40% / 60%) an den Brust-Tagen.</div>
         </div>
         <div class="field">
-          <label>Programm-Start (Woche 1)</label>
-          <input id="setProg" type="date">
-          <div class="hint">Bestimmt, in welcher der 12 Programm-Wochen du gerade bist.</div>
-        </div>
-        <div class="field">
           <label>Kalorien-Ziel pro Tag (optional)</label>
           <input id="setKcal" type="number" inputmode="numeric" placeholder="z.B. 2800">
           <div class="hint">Wenn gesetzt, zeigt das Tages-Review über/unter Ziel an.</div>
@@ -439,19 +434,15 @@ let saveTimer=null, storageBroken=false;
 
 function defaultDB(){ return {v:3, base1RM:90, kcalTarget:"", progStart:isoWeekKey(new Date()), sessions:{}, weeks:{}, ui:{}}; }
 
-function nextMondayKey(){ const d=new Date(); const day=(d.getDay()+6)%7; const add=(7-day)%7||7;
-  d.setDate(d.getDate()+add); return isoWeekKey(d); }
-function anchorProg(db){ if(!db.progAnchored){ db.progStart=nextMondayKey(); db.progAnchored=true; } return db; }
 function loadDB(){
   try{
     let raw=localStorage.getItem(LS_KEY);
     if(raw){ const d=JSON.parse(raw); const def=defaultDB();
-      return anchorProg(Object.assign(def,d,{ui:Object.assign({},def.ui,d.ui||{}),weeks:d.weeks||{},sessions:d.sessions||{}})); }
-    // migrate from v2 if present
+      return Object.assign(def,d,{ui:Object.assign({},def.ui,d.ui||{}),weeks:d.weeks||{},sessions:d.sessions||{}}); }
     let old=localStorage.getItem("jhtt_db_v2");
-    if(old){ return anchorProg(migrateV2(JSON.parse(old))); }
-    return anchorProg(defaultDB());
-  }catch(e){ return anchorProg(defaultDB()); }
+    if(old){ return migrateV2(JSON.parse(old)); }
+    return defaultDB();
+  }catch(e){ return defaultDB(); }
 }
 function migrateV2(o){
   const db=defaultDB();
@@ -587,46 +578,35 @@ document.querySelectorAll("nav button").forEach(b=>{
 
 /* ================= WEEK LIST ================= */
 function weekClosed(w){ return !!(DB.weeks[w]&&DB.weeks[w].closed); }
-function weeksToShow(){
-  const set={};
-  Object.keys(DB.sessions).forEach(k=>set[k.split("|")[0]]=1);
-  Object.keys(DB.weeks).forEach(w=>set[w]=1);
-  const cur=isoWeekKey(new Date());
-  for(let i=-4;i<=1;i++) set[shiftWeek(cur,i)]=1;
-  for(let i=0;i<PROG_WEEKS;i++) set[shiftWeek(DB.progStart,i)]=1;  // alle 12 Programmwochen
-  set[curWeek]=1;
-  return Object.keys(set).sort().reverse();
-}
 function weekCountTrainings(w){ let c=0; DAYS.forEach(d=>{const o=getDay(w,d); if(o&&o.trainingId) c++;}); return c; }
 function orderedWeeks(){
   const out=[], seen={};
   const push=k=>{ if(k&&!seen[k]){seen[k]=1;out.push(k);} };
-  const testWeek=isoWeekKey(new Date());
-  if(progWeekNum(testWeek)<1) push(testWeek);            // Testwoche ganz oben
-  for(let i=0;i<PROG_WEEKS;i++) push(shiftWeek(DB.progStart,i)); // 1) ... 12)
+  const cur=isoWeekKey(new Date());
+  push(cur);                                   // diese Woche zuerst
+  push(shiftWeek(cur,1)); push(shiftWeek(cur,2)); // nächste Wochen
+  for(let i=1;i<=12;i++) push(shiftWeek(cur,-i));  // vergangene Wochen
+  push(curWeek);
   Object.keys(DB.sessions).forEach(k=>push(k.split("|")[0]));
   Object.keys(DB.weeks).forEach(k=>push(k));
-  push(curWeek);
-  return out;
+  return out;   // Reihenfolge bewusst nicht sortiert
+}
+function weekLabel(key){
+  const wk=key.split("-W")[1]; const mon=fmtDate(dayDate(key,"Mo"));
+  const closed=weekClosed(key)?"\u2713 ":"";
+  const cnt=weekCountTrainings(key);
+  const isCur=key===isoWeekKey(new Date())?" · diese Woche":"";
+  return closed+"KW"+wk+" · ab "+mon+isCur+" · "+cnt+" Trainings";
 }
 function renderWeekList(){
   const sel=document.getElementById("weekSelect");
-  sel.innerHTML=orderedWeeks().map(key=>{
-    const pw=progWeekNum(key); const inProg=pw>=1&&pw<=PROG_WEEKS;
-    const mon=fmtDate(dayDate(key,"Mo")); const closed=weekClosed(key)?"\u2713 ":"";
-    const cnt=weekCountTrainings(key);
-    let label;
-    if(inProg){ label=closed+pw+") "+mon+" · "+cnt+" Trainings"; }
-    else if(pw<1){ label="TEST · "+mon+" · heute ausprobieren"; }
-    else { label=closed+"KW"+key.split("-W")[1]+" · "+mon+" · "+cnt+" Trainings"; }
-    return '<option value="'+key+'"'+(key===curWeek?" selected":"")+'>'+esc(label)+'</option>';
-  }).join("");
-  const pw=progWeekNum(curWeek); const inProg=pw>=1&&pw<=PROG_WEEKS;
+  sel.innerHTML=orderedWeeks().map(key=>
+    '<option value="'+key+'"'+(key===curWeek?" selected":"")+'>'+esc(weekLabel(key))+'</option>'
+  ).join("");
   const meta=document.getElementById("weekMeta");
   const cnt=weekCountTrainings(curWeek); const cl=weekClosed(curWeek)?" · abgeschlossen":"";
-  if(inProg){ meta.textContent="Woche "+pw+" · ab "+fmtDate(dayDate(curWeek,"Mo"))+" · "+cnt+" Trainings"+cl;
-  } else if(pw<1){ meta.textContent="Test-Woche · heute zum Ausprobieren · Woche 1 startet Mo · "+cnt+" Trainings"+cl;
-  } else { meta.textContent="KW "+curWeek.split("-W")[1]+" · ab "+fmtDate(dayDate(curWeek,"Mo"))+" · "+cnt+" Trainings"+cl; }
+  const isCur=curWeek===isoWeekKey(new Date())?" · diese Woche":"";
+  meta.textContent="KW "+curWeek.split("-W")[1]+" · ab "+fmtDate(dayDate(curWeek,"Mo"))+isCur+" · "+cnt+" Trainings"+cl;
 }
 
 /* ================= RENDER TRAIN ================= */
@@ -1098,14 +1078,10 @@ function renderPlan(){
 
 /* ================= SETTINGS ================= */
 function fillSettings(){ document.getElementById("setRM").value=DB.base1RM||"";
-  document.getElementById("setKcal").value=DB.kcalTarget||"";
-  const mon=weekKeyMonday(DB.progStart||isoWeekKey(new Date()));
-  document.getElementById("setProg").value=mon.toISOString().slice(0,10); }
+  document.getElementById("setKcal").value=DB.kcalTarget||""; }
 document.getElementById("saveSet").addEventListener("click",()=>{
   DB.base1RM=+document.getElementById("setRM").value||90;
   DB.kcalTarget=document.getElementById("setKcal").value.trim();
-  const pv=document.getElementById("setProg").value;
-  if(pv) DB.progStart=isoWeekKey(new Date(pv+"T00:00:00"));
   saveDB(); const b=document.getElementById("saveSet"); const o=b.textContent; b.textContent="Gespeichert ✓"; setTimeout(()=>b.textContent=o,1400);
   renderTrain();
 });
